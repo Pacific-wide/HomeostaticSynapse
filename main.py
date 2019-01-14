@@ -1,64 +1,67 @@
-import importlib
-import datetime
-import random
-import uuid
-import time
-import os
-
 import numpy as np
-
 import tensorflow as tf
+import dataset as mnist
 
-def load_datasets(FLAGS):
-    dataset = np.load(FLAGS.data_path + FLAGS.type + ' 0.npz')
-    x_tr = dataset['x_tr']
-    y_tr = dataset['y_tr']
-    x_te = dataset['x_te']
-    y_te = dataset['y_te']
-    
-    return x_tr, y_tr, x_te, y_te
-    
+
+def train_input_fn(batch_size):
+    dataset_train, _ = mnist.load_mnist_datasets()
+    dataset_train = dataset_train.shuffle(1000).repeat(5).batch(batch_size)
+
+    return dataset_train
+
+
+def eval_input_fn(batch_size):
+    _, dataset_eval = mnist.load_mnist_datasets()
+    dataset_eval = dataset_eval.batch(batch_size)
+
+    return dataset_eval
+
+
+def model_fn(features, labels, mode, params):
+    model = FullyConnectedNetwork()
+    logits = model(features)
+    predictions = tf.argmax(logits, axis=1)
+
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        softmax_layer = tf.keras.layers.Softmax()
+        probabilities = softmax_layer(logits)
+        return tf.estimator.EstimatorSpec(mode, predictions={'predictions': predictions, 'probabilities': probabilities})
+
+    one_hot_labels = tf.one_hot(labels, 10)
+    loss = tf.losses.softmax_cross_entropy(one_hot_labels, logits)
+
+    if mode == tf.estimator.ModeKeys.EVAL:
+        accuracy = tf.metrics.accuracy(labels, predictions)
+        return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops={'accuracy': accuracy})
+
+    opt = tf.train.GradientDescentOptimizer(learning_rate=0.1)
+
+    train_op = opt.minimize(loss, global_step=tf.train.get_global_step())
+
+    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+
+
+class FullyConnectedNetwork(tf.keras.models.Model):
+    def __init__(self):
+        super(FullyConnectedNetwork, self).__init__()
+        self.net = tf.keras.Sequential([
+            tf.keras.layers.InputLayer((784,)),
+            tf.keras.layers.Dense(800, activation='relu'),
+            tf.keras.layers.Dense(800, activation='relu'),
+            tf.keras.layers.Dense(10)])
+
+    def call(self, inputs, training=None, mask=None):
+        return self.net(inputs)
+
 
 if __name__ == "__main__":
-    flags = tf.app.flags
-    FLAGS = flags.FLAGS
 
-    flags.DEFINE_string('type', 'perm', 'type of dataset')
-    flags.DEFINE_integer('n_tasks', 3, 'number of tasks') 
-    flags.DEFINE_integer('n_types', 3, 'number of types') 
-    
-    # main model parameters
-    flags.DEFINE_string('model', 'single', 'model to train')
-    flags.DEFINE_integer('n_hiddens', 100, 'number of hidden neurons at each layer') 
-    flags.DEFINE_integer('n_layers', 2, 'number of hidden layers') 
-    
-    # main optimizer parameters
-    flags.DEFINE_integer('n_epochs', 1,'Number of epochs per task')
-    flags.DEFINE_integer('batch_size', 1,'batch size')
-    flags.DEFINE_float('lr', 1e-3, 'SGD learning rate')
+    batch_size = 64
+    run_config = tf.estimator.RunConfig(model_dir='model', save_checkpoints_steps=500)
 
-    # experiment parameters
-    flags.DEFINE_string('save_path', 'results/', 'save models at the end of training')
+    estimator = tf.estimator.Estimator(model_fn=model_fn, config=run_config)
+    train_spec = tf.estimator.TrainSpec(input_fn=lambda: train_input_fn(batch_size=batch_size))
+    eval_spec = tf.estimator.EvalSpec(input_fn=lambda: eval_input_fn(batch_size=batch_size),
+                                      start_delay_secs=1, throttle_secs=1)
 
-    # data parameters
-    flags.DEFINE_string('data_path', 'data/dataset/', 'path where data is located')
-
-    flags.DEFINE_integer('samples_per_task', 1000,'training samples per task')
-    
-
-    # unique identifier
-    uid = uuid.uuid4().hex
-
-    # load data
-    x_tr, y_tr, x_te, y_te = load_datasets(FLAGS)
-
-    # set up DataSet
-
-    
-    # load model
-    Model = importlib.import_module('model.' + args.model)
-    model = Model.Net(n_inputs, n_outputs, n_tasks, args)
-    
-    # run model on continuum
-    result_t, result_a, spent_time = life_experience(model, continuum, x_te, args)
-
+    tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
