@@ -6,7 +6,7 @@ import input
 import model
 
 # Task flags
-flags.DEFINE_integer('n_task', '2', 'Number of tasks in sequence.')
+flags.DEFINE_integer('n_task', '10', 'Number of tasks in sequence.')
 flags.DEFINE_integer('seed', '1', 'Random seed.')
 
 # Estimator flags
@@ -36,10 +36,8 @@ def prepare_permutations(n_task, seed):
 def main(unused_argv):
     run_config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir,
                                         save_checkpoints_steps=2000)
-    layers = ['dense', 'dense_1', 'dense_2']
-    var_dict = {}
-    fisher_dict = {}
-    params = {'learning_rate': FLAGS.lr, 'fisher': fisher_dict, 'pre_var': var_dict}
+
+    params = {'learning_rate': FLAGS.lr, 'model_dir': FLAGS.model_dir}
     model_dict = {'base': model.base,
                   'ewc': model.ewc}
     n_task = FLAGS.n_task
@@ -48,18 +46,15 @@ def main(unused_argv):
     estimator = tf.estimator.Estimator(model_fn=model_dict[FLAGS.model],
                                        config=run_config,
                                        params=params)
+
     accuracy_mat = np.zeros((n_task, n_task))
+
     for i in range(n_task):
-        print(var_dict)
         estimator.train(input_fn=lambda: input.train_input_fn(FLAGS.n_epoch, FLAGS.n_batch, p[i]))
-        for layer in layers:
-            var_name = layer + '/kernel'
-            name = var_name + '/sum_gradients'
-            var_dict[var_name] = estimator.get_variable_value(var_name)
-            fisher_dict[var_name] = estimator.get_variable_value(name)
         for j in range(i+1):
             result_dict = estimator.evaluate(input_fn=lambda: input.eval_input_fn(FLAGS.n_batch, p[j]))
             accuracy_mat[i, j] = result_dict['accuracy']
+        print('-'*50 + "Task " + str(i) + " Complete " + '-'*50)
 
     np.set_printoptions(precision=4)
     print(accuracy_mat)
