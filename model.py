@@ -15,7 +15,30 @@ def base(features, labels, mode, params):
 
     one_hot_labels = tf.one_hot(labels, 10)
     loss = tf.losses.softmax_cross_entropy(one_hot_labels, logits)
-    print(tf.trainable_variables())
+
+    if mode == tf.estimator.ModeKeys.EVAL:
+        accuracy = tf.metrics.accuracy(labels, predictions)
+        return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops={'accuracy': accuracy})
+
+    opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+
+    train_op = opt.minimize(loss, global_step=tf.train.get_global_step())
+
+    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+
+
+def multi(features, labels, mode, params):
+    model = FullyConnectedNetwork()
+    logits = model(features)
+    predictions = tf.argmax(logits, axis=1)
+
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        softmax_layer = tf.keras.layers.Softmax()
+        probabilities = softmax_layer(logits)
+        return tf.estimator.EstimatorSpec(mode, predictions={'predictions': predictions, 'probabilities': probabilities})
+
+    one_hot_labels = tf.one_hot(labels, 10)
+    loss = tf.losses.softmax_cross_entropy(one_hot_labels, logits)
 
     if mode == tf.estimator.ModeKeys.EVAL:
         accuracy = tf.metrics.accuracy(labels, predictions)
@@ -43,18 +66,11 @@ def ewc(features, labels, mode, params):
 
     checkpoint = params['model_dir']
     if os.path.isdir(checkpoint):
-        cur_var_list = tf.trainable_variables()
-        var_names = tf.train.list_variables(checkpoint)
-        for i in range(3):
-            cur_var = cur_var_list[2*i]
-            print("Current Shape: ")
-            print(cur_var.shape)
-            pre_var = tf.train.load_variable(checkpoint, var_names[4*i+2][0])
-            print("Previous Shape: ")
-            print(pre_var.shape)
-            fisher = tf.train.load_variable(checkpoint, var_names[4*i+3][0])
-            print("Fisher Shape: ")
-            print(fisher.shape)
+        for weight in model.weights:
+            name = weight.name[:-2]
+            cur_var = weight
+            pre_var = tf.train.load_variable(checkpoint, name)
+            fisher = tf.train.load_variable(checkpoint, name+'/fisher')
 
             ewc_loss = tf.losses.mean_squared_error(cur_var, pre_var, fisher)
             loss = loss + ewc_loss
