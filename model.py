@@ -91,6 +91,39 @@ def ewc(features, labels, mode, params):
     return tf.estimator.EstimatorSpec(mode, loss=loss, training_hooks=fisher_hook, train_op=train_op)
 
 
+def meta(features, labels, mode, params):
+    model = FullyConnectedNetwork()
+    n_batch = params['n_batch']
+
+    joint_features, base_features0, base_features1 = features
+    joint_labels, base_labels0, base_labels1 = labels
+
+    logits = model(base_features0)
+    predictions = tf.argmax(logits, axis=1)
+
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        softmax_layer = tf.keras.layers.Softmax()
+        probabilities = softmax_layer(logits)
+        return tf.estimator.EstimatorSpec(mode, predictions={'predictions': predictions, 'probabilities': probabilities})
+
+    one_hot_labels = tf.one_hot(base_labels0, 10)
+    loss = tf.losses.softmax_cross_entropy(one_hot_labels, logits)
+
+    if mode == tf.estimator.ModeKeys.EVAL:
+        eval_logits = model(features)
+        one_hot_labels = tf.one_hot(labels, 10)
+        eval_loss = tf.losses.softmax_cross_entropy(one_hot_labels, eval_logits)
+        accuracy = tf.metrics.accuracy(labels, predictions)
+        return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops={'accuracy': accuracy})
+
+    opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+
+    grads_and_vars = opt.compute_gradients(loss)
+    train_op = opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+
+    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+
+
 class FullyConnectedNetwork(tf.keras.models.Model):
     def __init__(self):
         super(FullyConnectedNetwork, self).__init__()

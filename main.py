@@ -6,17 +6,20 @@ import input
 import model
 
 # Task flags
-flags.DEFINE_integer('n_task', '5', 'Number of tasks in sequence.')
+flags.DEFINE_integer('n_task', '2', 'Number of tasks in sequence.')
 flags.DEFINE_integer('seed', '1', 'Random seed.')
 
 # Estimator flags
-flags.DEFINE_string('model', 'multi', 'Model to train.')
+flags.DEFINE_string('model', 'meta', 'Model to train.')
 flags.DEFINE_string('model_dir', 'model', 'Path to output model directory.')
-flags.DEFINE_integer('n_epoch', 5, 'Number of train epochs.')
+flags.DEFINE_integer('n_epoch', 1, 'Number of train epochs.')
 
 # Optimizer flags
-flags.DEFINE_float('lr', 1e-2, 'Learning rate of an optimizer.')
+flags.DEFINE_float('lr', 1e-1, 'Learning rate of an optimizer.')
 flags.DEFINE_integer('n_batch', 10, 'Number of examples in a batch')
+
+# Meta-Learning flags
+flags.DEFINE_boolean('isAlign', True, 'Aligning data in each task.')
 
 FLAGS = flags.FLAGS
 
@@ -37,10 +40,12 @@ def main(unused_argv):
     run_config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir,
                                         save_checkpoints_steps=2000)
 
-    params = {'learning_rate': FLAGS.lr, 'model_dir': FLAGS.model_dir}
+    params = {'learning_rate': FLAGS.lr, 'model_dir': FLAGS.model_dir,
+              'layers': [784, 100, 100, 10], 'n_batch': FLAGS.n_batch}
     model_dict = {'base': model.base,
                   'multi': model.multi,
-                  'ewc': model.ewc}
+                  'ewc': model.ewc,
+                  'meta': model.meta}
     n_task = FLAGS.n_task
     p = prepare_permutations(n_task, FLAGS.seed)
 
@@ -48,6 +53,17 @@ def main(unused_argv):
                                        config=run_config,
                                        params=params)
 
+    accuracy_mat = np.zeros(n_task)
+    estimator.train(input_fn=lambda: input.meta_train_input_fn(FLAGS.n_epoch, FLAGS.n_batch, p, FLAGS.isAlign))
+    for i in range(n_task):
+        result_dict = estimator.evaluate(input_fn=lambda: input.eval_input_fn(FLAGS.n_batch, p[i]))
+        accuracy_mat[i] = result_dict['accuracy']
+    print('-' * 50 + "Task " + str(i + 1) + " Complete " + '-' * 50)
+
+    np.set_printoptions(precision=4)
+    print(accuracy_mat)
+
+    """
     accuracy_mat = np.zeros((n_task, n_task))
     for i in range(n_task):
         estimator.train(input_fn=lambda: input.train_input_fn(FLAGS.n_epoch, FLAGS.n_batch, p[i]))
@@ -58,6 +74,7 @@ def main(unused_argv):
         
     np.set_printoptions(precision=4)
     print(accuracy_mat)
+        """
 
 
 if __name__ == '__main__':
