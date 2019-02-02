@@ -41,7 +41,7 @@ def main(unused_argv):
                                         save_checkpoints_steps=2000)
 
     params = {'learning_rate': FLAGS.lr, 'model_dir': FLAGS.model_dir,
-              'layers': [784, 100, 100, 10], 'n_batch': FLAGS.n_batch}
+              'layers': [784, 100, 100, 10]}
     model_dict = {'base': model.base,
                   'multi': model.multi,
                   'ewc': model.ewc,

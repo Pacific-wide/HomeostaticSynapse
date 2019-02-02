@@ -93,33 +93,56 @@ def ewc(features, labels, mode, params):
 
 def meta(features, labels, mode, params):
     model = FullyConnectedNetwork()
-    n_batch = params['n_batch']
 
-    joint_features, base_features0, base_features1 = features
-    joint_labels, base_labels0, base_labels1 = labels
-
-    logits = model(base_features0)
-    predictions = tf.argmax(logits, axis=1)
-
-    if mode == tf.estimator.ModeKeys.PREDICT:
-        softmax_layer = tf.keras.layers.Softmax()
-        probabilities = softmax_layer(logits)
-        return tf.estimator.EstimatorSpec(mode, predictions={'predictions': predictions, 'probabilities': probabilities})
-
-    one_hot_labels = tf.one_hot(base_labels0, 10)
-    loss = tf.losses.softmax_cross_entropy(one_hot_labels, logits)
+    if mode == tf.estimator.ModeKeys.TRAIN:
+        joint_features, base_features0, base_features1 = features
+        joint_labels, base_labels0, base_labels1 = labels
+        logits = model(joint_features)
+        predictions = tf.argmax(logits, axis=1)
+        one_hot_labels = tf.one_hot(joint_labels, 10)
+        loss = tf.losses.softmax_cross_entropy(one_hot_labels, logits)
 
     if mode == tf.estimator.ModeKeys.EVAL:
         eval_logits = model(features)
+        predictions = tf.argmax(eval_logits, axis=1)
         one_hot_labels = tf.one_hot(labels, 10)
         eval_loss = tf.losses.softmax_cross_entropy(one_hot_labels, eval_logits)
         accuracy = tf.metrics.accuracy(labels, predictions)
-        return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops={'accuracy': accuracy})
+        return tf.estimator.EstimatorSpec(mode, loss=eval_loss, eval_metric_ops={'accuracy': accuracy})
 
     opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
 
     grads_and_vars = opt.compute_gradients(loss)
     train_op = opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+
+    grad, var = zip(*grads_and_vars)
+
+    meta_model = MetaNetwork()
+    meta_logits = meta_model(grads)
+
+    features, labels
+    features_joint, labels_joint
+
+    logits = base(features)
+    loss = loss_fn(logits, labels)
+
+    base_grads_and_vars_all = optimizer.compute_gradients(loss)
+
+    base_grads_and_vars = choose_fn(base_grads_and_vars, base.weights)
+
+    base_train_op = optimizer.apply_gradients(base_grads_and_vars)
+
+    logits_joint = base(features_joint)
+    loss_joint = loss_fn(logits_joint, labels_joint)
+
+    outputs = meta(base.weights, base_grads)
+    loss_meta = meta_loss_fn(outputs, base_grads_joint)
+
+    meta_grads_and_vars = choose_fn(meta_grads_and_vars, meta.weights)
+
+    meta_train_op = optimizer_meta.apply(base)
+
+    train_op = [base_train_op, meta_train_op]
 
     return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
