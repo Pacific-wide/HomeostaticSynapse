@@ -18,7 +18,7 @@ def eval_input_fn(n_batch, p):
     return perm_d_eval
 
 
-def meta_train_input_fn(n_epoch, n_batch, ps, isAlign):
+def meta_train_input_fn(n_epoch, n_batch, ps):
     d_train, _ = mnist.load_mnist_datasets()
     n_task = ps.shape[0]
     task_tuple = ()
@@ -28,17 +28,11 @@ def meta_train_input_fn(n_epoch, n_batch, ps, isAlign):
 
     comb_d_train = tf.data.Dataset.zip(task_tuple)
     flat_d_train = comb_d_train.flat_map(map_fn)
-
     data_tuple = (flat_d_train, ) + task_tuple
-
-    print("task_tuple:", data_tuple)
 
     final_train = tf.data.Dataset.zip(data_tuple)
     final_train = final_train.map(unfold_tuple)
-
-    print("joint_train before:", final_train)
     final_train = final_train.repeat(n_epoch).batch(2*n_task*n_batch)
-    print("joint_train after:", final_train)
 
     return final_train
 
@@ -75,14 +69,12 @@ def shuffled_multi_train_input_fn(n_epoch, n_batch, ps):
 
 def unfold_tuple(*x):
     t1, t2, t3 = x
-    print("Joint task ", t1)
-    print("Task 1", t2)
-    print("Task 2", t3)
+
     f1, l1 = t1
     f2, l2 = t2
     f3, l3 = t3
 
-    return ((f1, f2, f3), (l1, l2, l3))
+    return (f1, f2, f3), (l1, l2, l3)
 
 
 def map_fn(*x):

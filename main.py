@@ -19,7 +19,6 @@ flags.DEFINE_float('lr', 1e-1, 'Learning rate of an optimizer.')
 flags.DEFINE_integer('n_batch', 10, 'Number of examples in a batch')
 
 # Meta-Learning flags
-flags.DEFINE_boolean('isAlign', True, 'Aligning data in each task.')
 
 FLAGS = flags.FLAGS
 
@@ -54,7 +53,7 @@ def main(unused_argv):
                                        params=params)
 
     accuracy_mat = np.zeros(n_task)
-    estimator.train(input_fn=lambda: input.meta_train_input_fn(FLAGS.n_epoch, FLAGS.n_batch, p, FLAGS.isAlign))
+    estimator.train(input_fn=lambda: input.meta_train_input_fn(FLAGS.n_epoch, FLAGS.n_batch, p))
     for i in range(n_task):
         result_dict = estimator.evaluate(input_fn=lambda: input.eval_input_fn(FLAGS.n_batch, p[i]))
         accuracy_mat[i] = result_dict['accuracy']
