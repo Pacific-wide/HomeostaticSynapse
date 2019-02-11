@@ -24,6 +24,8 @@ def base(features, labels, mode, params):
 
     train_op = opt.minimize(loss, global_step=tf.train.get_global_step())
 
+    meta_model = MetaNetwork()
+
     return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
 
@@ -132,21 +134,65 @@ def meta(features, labels, mode, params):
 
     train_op = opt.apply_gradients(grads_and_vars0, global_step=tf.train.get_global_step())
 
-    meta_model = MetaNetwork(grads_and_vars0)
+    meta_model = MetaNetwork()
 
-    meta_output = meta_model([grad0, grad1])
-    print(meta_output)
-    print(joint_grad)
-    # meta_loss = tf.losses.mean_squared_error(meta_output, joint_grad)
+    meta_batch = combine_meta_batch(grad0, grad1, model.weights)
+    meta_label = prepare_meta_batch(joint_grad)
+    print("meta_batch", meta_batch)
+    print("meta_label", meta_label)
 
-    # meta_grads_and_vars = opt.compute_gradients(meta_loss)
-    # meta_grad, meta_var = zip(*meta_grads_and_vars)
+    meta_output = meta_model(meta_batch)
+    meta_loss = tf.losses.mean_squared_error(meta_output, meta_label)
 
-    # meta_opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+    print("meta_model.weights", meta_model.weights)
+    meta_grads_and_vars = opt.compute_gradients(meta_loss, var_list=meta_model.weights)
 
-    # meta_train_op = meta_opt.apply_gradients(meta_grads_and_vars, global_step=tf.train.get_global_step())
+    meta_grad, meta_var = zip(*meta_grads_and_vars)
 
-    return tf.estimator.EstimatorSpec(mode, loss=loss0, train_op=train_op)
+    meta_opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+
+    meta_train_op = meta_opt.apply_gradients(meta_grads_and_vars, global_step=tf.train.get_global_step())
+
+    return tf.estimator.EstimatorSpec(mode, loss=meta_loss, train_op=tf.group([train_op, meta_train_op]))
+
+
+def meta_eval(features, labels, mode, params):
+    model = FullyConnectedNetwork()
+    logits = model(features)
+    predictions = tf.argmax(logits, axis=1)
+
+    one_hot_labels = tf.one_hot(labels, 10)
+    loss = tf.losses.softmax_cross_entropy(one_hot_labels, logits)
+
+    if mode == tf.estimator.ModeKeys.EVAL:
+        accuracy = tf.metrics.accuracy(labels, predictions)
+        return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops={'accuracy': accuracy})
+
+    opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+    grads_and_vars = opt.compute_gradients(loss)
+
+    meta_model = MetaNetwork()
+
+    train_op = opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+
+    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+
+
+def combine_meta_batch(pre, cur, weight):
+    combine_list = [prepare_meta_batch(pre),
+                    prepare_meta_batch(cur),
+                    prepare_meta_batch(weight)]
+
+    return tf.concat(combine_list, axis=1)
+
+
+def prepare_meta_batch(grads):
+    grad_list = []
+    for grad in grads:
+        flat_grad = tf.reshape(grad, [-1, 1])
+        grad_list.append(flat_grad)
+
+    return tf.concat(grad_list, axis=0)
 
 
 class FullyConnectedNetwork(tf.keras.models.Model):
@@ -158,42 +204,21 @@ class FullyConnectedNetwork(tf.keras.models.Model):
             tf.keras.layers.Dense(100, activation='relu'),
             tf.keras.layers.Dense(10)])
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         return self.net(inputs)
 
 
 class MetaNetwork(tf.keras.models.Model):
-    def __init__(self, grads_and_vars):
+    def __init__(self):
         super(MetaNetwork, self).__init__()
-        grads, vars = zip(*grads_and_vars)
-        self.nets = []
-        for grad in grads:
-            flat_grad = tf.reshape(grad, [-1])
-            out_shape = flat_grad.shape[0]
-            in_shape = out_shape * 2
-            print(in_shape, out_shape)
-            self.net = tf.keras.Sequential([
-                tf.keras.layers.InputLayer((in_shape,)),
-                tf.keras.layers.Dense(100, activation='relu'),
-                tf.keras.layers.Dense(out_shape)])
-            self.nets.append(self.net)
+        self.net = tf.keras.Sequential([
+            tf.keras.layers.InputLayer((3,)),
+            tf.keras.layers.Dense(10, activation='relu'),
+            tf.keras.layers.Dense(10, activation='relu'),
+            tf.keras.layers.Dense(1)])
 
-    def call(self, inputs, training=None, mask=None):
-        cur_grads = inputs[0]
-        pre_grads = inputs[1]
-        print(cur_grads)
-        print(pre_grads)
-        output = ()
-        for i, (cur_grad, pre_grad) in enumerate(zip(cur_grads, pre_grads)):
-            cur_flat_grad = tf.reshape(cur_grad, [1, -1])
-            pre_flat_grad = tf.reshape(pre_grad, [1, -1])
-            input = tf.concat([cur_flat_grad, pre_flat_grad], axis=1)
-            print(cur_flat_grad)
-            print(pre_flat_grad)
-            print(input)
-            output = output + (self.nets[i](input), )
-
-        return output
+    def call(self, inputs):
+        return self.net(inputs)
 
 
 class GradientAccumulationHook(tf.train.SessionRunHook):
