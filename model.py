@@ -20,37 +20,17 @@ def base(features, labels, mode, params):
         accuracy = tf.metrics.accuracy(labels, predictions)
         return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops={'accuracy': accuracy})
 
-    opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
-
-    train_op = opt.minimize(loss, global_step=tf.train.get_global_step())
+    opt = tf.train.GradientDescentOptimizer(learning_rate=params['lr'])
+    grads_and_vars = opt.compute_gradients(loss)
+    train_op = opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
 
     meta_model = MetaNetwork()
 
-    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+    fisher_hook = []
+    for grad_and_var in grads_and_vars:
+        fisher_hook.append(GradientAccumulationHook(grad_and_var))
 
-
-def multi(features, labels, mode, params):
-    model = FullyConnectedNetwork()
-    logits = model(features)
-    predictions = tf.argmax(logits, axis=1)
-
-    if mode == tf.estimator.ModeKeys.PREDICT:
-        softmax_layer = tf.keras.layers.Softmax()
-        probabilities = softmax_layer(logits)
-        return tf.estimator.EstimatorSpec(mode, predictions={'predictions': predictions, 'probabilities': probabilities})
-
-    one_hot_labels = tf.one_hot(labels, 10)
-    loss = tf.losses.softmax_cross_entropy(one_hot_labels, logits)
-
-    if mode == tf.estimator.ModeKeys.EVAL:
-        accuracy = tf.metrics.accuracy(labels, predictions)
-        return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops={'accuracy': accuracy})
-
-    opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
-
-    train_op = opt.minimize(loss, global_step=tf.train.get_global_step())
-
-    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+    return tf.estimator.EstimatorSpec(mode, loss=loss, training_hooks=fisher_hook, train_op=train_op)
 
 
 def ewc(features, labels, mode, params):
@@ -66,7 +46,7 @@ def ewc(features, labels, mode, params):
 
     loss = tf.losses.softmax_cross_entropy(one_hot_labels, logits)
 
-    checkpoint = params['model_dir']
+    checkpoint = params['eval_model_dir']
     if os.path.isdir(checkpoint):
         for weight in model.weights:
             name = weight.name[:-2]
@@ -81,7 +61,7 @@ def ewc(features, labels, mode, params):
         accuracy = tf.metrics.accuracy(labels, predictions)
         return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops={'accuracy': accuracy})
 
-    opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+    opt = tf.train.GradientDescentOptimizer(learning_rate=params['lr'])
 
     grads_and_vars = opt.compute_gradients(loss)
     fisher_hook = []
@@ -93,7 +73,7 @@ def ewc(features, labels, mode, params):
     return tf.estimator.EstimatorSpec(mode, loss=loss, training_hooks=fisher_hook, train_op=train_op)
 
 
-def meta(features, labels, mode, params):
+def meta_train(features, labels, mode, params):
     model = FullyConnectedNetwork()
 
     if mode == tf.estimator.ModeKeys.EVAL:
@@ -111,18 +91,20 @@ def meta(features, labels, mode, params):
     logits0 = model(single_features0)
     one_hot_labels0 = tf.one_hot(single_labels0, 10)
     loss0 = tf.losses.softmax_cross_entropy(one_hot_labels0, logits0)
+    tf.summary.scalar(name='losses/main_loss0', tensor=loss0)
 
     # single 1
     logits1 = model(single_features1)
     one_hot_labels1 = tf.one_hot(single_labels1, 10)
     loss1 = tf.losses.softmax_cross_entropy(one_hot_labels1, logits1)
+    tf.summary.scalar(name='losses/main_loss1', tensor=loss1)
 
     # joint
     joint_logits = model(joint_features)
     joint_one_hot_labels = tf.one_hot(joint_labels, 10)
     joint_loss = tf.losses.softmax_cross_entropy(joint_one_hot_labels, joint_logits)
 
-    opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+    opt = tf.train.GradientDescentOptimizer(learning_rate=params['lr'])
 
     grads_and_vars0 = opt.compute_gradients(loss0)
     grads_and_vars1 = opt.compute_gradients(loss1)
@@ -135,21 +117,21 @@ def meta(features, labels, mode, params):
     train_op = opt.apply_gradients(grads_and_vars0, global_step=tf.train.get_global_step())
 
     meta_model = MetaNetwork()
-
     meta_batch = combine_meta_batch(grad0, grad1, model.weights)
-    meta_label = prepare_meta_batch(joint_grad)
-    print("meta_batch", meta_batch)
-    print("meta_label", meta_label)
+    meta_label = layer_to_flat(joint_grad)
 
     meta_output = meta_model(meta_batch)
     meta_loss = tf.losses.mean_squared_error(meta_output, meta_label)
+    tf.summary.scalar(name='losses/meta_loss', tensor=meta_loss)
 
-    print("meta_model.weights", meta_model.weights)
     meta_grads_and_vars = opt.compute_gradients(meta_loss, var_list=meta_model.weights)
+    meta_grads, meta_var = zip(*meta_grads_and_vars)
+    normalized_meta_grads = []
+    for meta_grad in meta_grads:
+        normalized_meta_grads.append(tf.math.l2_normalize(meta_grad))
+    meta_grads_and_vars = zip(normalized_meta_grads, meta_var)
 
-    meta_grad, meta_var = zip(*meta_grads_and_vars)
-
-    meta_opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+    meta_opt = tf.train.GradientDescentOptimizer(learning_rate=params['meta_lr'])
 
     meta_train_op = meta_opt.apply_gradients(meta_grads_and_vars, global_step=tf.train.get_global_step())
 
@@ -164,35 +146,71 @@ def meta_eval(features, labels, mode, params):
     one_hot_labels = tf.one_hot(labels, 10)
     loss = tf.losses.softmax_cross_entropy(one_hot_labels, logits)
 
+    checkpoint = params["eval_model_dir"]
+    fishers = []
+    for weight in model.weights:
+        name = weight.name[:-2]
+        fisher = tf.train.load_variable(checkpoint, name+'/fisher')
+        fishers.append(fisher)
+
     if mode == tf.estimator.ModeKeys.EVAL:
         accuracy = tf.metrics.accuracy(labels, predictions)
         return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops={'accuracy': accuracy})
 
-    opt = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+    opt = tf.train.GradientDescentOptimizer(learning_rate=params['lr'])
     grads_and_vars = opt.compute_gradients(loss)
 
+    fisher_hook = []
+    for grad_and_var in grads_and_vars:
+        fisher_hook.append(GradientAccumulationHook(grad_and_var))
+
+    grad, var = zip(*grads_and_vars)
+    #grad, _ = tf.clip_by_global_norm(grad, 1.0)
+
     meta_model = MetaNetwork()
+    pre_grad_square = fishers
 
-    train_op = opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+    meta_batch = combine_meta_batch(grad, pre_grad_square, model.weights)
+    meta_output = meta_model(meta_batch)
 
-    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+    final_grads_and_vars = flat_to_layer(meta_output, var)
+
+    train_op = opt.apply_gradients(final_grads_and_vars, global_step=tf.train.get_global_step())
+
+    return tf.estimator.EstimatorSpec(mode, loss=loss, training_hooks=fisher_hook, train_op=train_op)
 
 
-def combine_meta_batch(pre, cur, weight):
-    combine_list = [prepare_meta_batch(pre),
-                    prepare_meta_batch(cur),
-                    prepare_meta_batch(weight)]
+def combine_meta_batch(cur, pre, weight):
+    combine_list = [layer_to_flat(cur),
+                    layer_to_flat(pre),
+                    layer_to_flat(weight)]
 
     return tf.concat(combine_list, axis=1)
 
 
-def prepare_meta_batch(grads):
+def layer_to_flat(grads):
     grad_list = []
     for grad in grads:
         flat_grad = tf.reshape(grad, [-1, 1])
         grad_list.append(flat_grad)
 
     return tf.concat(grad_list, axis=0)
+
+
+def flat_to_layer(grads, cur_vars):
+    grads_and_vars = []
+    for var in cur_vars:
+        pre_shape = tf.shape(var)
+        flat_var = tf.reshape(var, [-1, 1])
+        size = tf.shape(flat_var)[0]
+        begin = 0
+        grad_vec = tf.reshape(grads, [-1])
+        flat_grad = tf.slice(grad_vec, [begin], [size])
+        grad = tf.reshape(flat_grad, pre_shape)
+        grads_and_vars.append((grad, var))
+        begin = begin + size
+
+    return grads_and_vars
 
 
 class FullyConnectedNetwork(tf.keras.models.Model):
@@ -218,28 +236,24 @@ class MetaNetwork(tf.keras.models.Model):
             tf.keras.layers.Dense(1)])
 
     def call(self, inputs):
-        return self.net(inputs)
+        return self.net(inputs) + inputs[:, 0:1]
 
 
 class GradientAccumulationHook(tf.train.SessionRunHook):
     def __init__(self, grad_and_var):
-        print("Start Accumulation")
         self.gradients = grad_and_var[0]
         self.variable = grad_and_var[1]
         self.name = self.variable.name[:-2]
 
     def begin(self):
-        self.sum_gradients = tf.Variable(tf.zeros_like(self.gradients), name=(self.name + '/fisher'))
         self.global_step = tf.train.get_global_step()
-        self.sum_operation = self.sum_gradients.assign_add(tf.math.square(self.gradients))
+        # self.sum_operation = self.sum_gradients.assign_add(tf.math.square(self.gradients))
+        self.mean_gradients_metric = tf.metrics.mean_tensor(self.gradients)
+        self.mean_gradients = tf.Variable(tf.zeros_like(self.gradients), name=(self.name + '/fisher'))
+        self.assign_mean_gradients = self.mean_gradients.assign(self.mean_gradients_metric[0])
+        tf.summary.scalar(name='fishers/' + self.name, tensor=tf.linalg.norm(self.mean_gradients))
 
     def before_run(self, run_context):
-        return tf.train.SessionRunArgs({'gradient': self.sum_operation, 'global_step': self.global_step})
-
-    def save_fisher_component(self, results):
-        if results['global_step'] % 1000 == 0:
-            print(self.name, ': ', np.linalg.norm(results['gradient']))
-
-    def after_run(self, run_context, run_values):
-        _ = run_context
-        self.save_fisher_component(run_values.results)
+        return tf.train.SessionRunArgs({'mean_gradient': self.mean_gradients_metric[1],
+                                        'assign_mean_gradient': self.assign_mean_gradients,
+                                        'global_step': self.global_step})

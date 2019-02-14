@@ -11,27 +11,11 @@ def train_input_fn(n_epoch, n_batch, p):
 
 
 def eval_input_fn(n_batch, p):
-    _, eval = mnist.load_mnist_datasets()
-    perm_eval = eval.map(lambda x, y: (mnist.permute(x, p), y))
+    _, d_eval = mnist.load_mnist_datasets()
+    perm_eval = d_eval.map(lambda x, y: (mnist.permute(x, p), y))
     perm_eval = perm_eval.batch(n_batch)
 
     return perm_eval
-
-
-def meta_eval_input_fn(n_epoch, n_batch, ps):
-    train, _ = mnist.load_mnist_datasets()
-
-    for i, p in enumerate(ps):
-        perm_train = train.map(lambda x, y: (mnist.permute(x, p), y))
-        if i == 0:
-            concat_train = perm_train
-        else:
-            concat_train = concat_train.concatenate(perm_train)
-
-    concat_train = concat_train.repeat(n_epoch).batch(n_batch)
-    print(concat_train.output_shapes)
-
-    return concat_train
 
 
 def meta_train_input_fn(n_epoch, n_batch, ps):
