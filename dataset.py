@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 import tensorflow as tf
 
 
@@ -12,12 +13,15 @@ def load_mnist_datasets():
     x_train = x_train.reshape(x_train.shape[0], -1) / 255.0  # (60000, 784)
     x_test = x_test.reshape(x_test.shape[0], -1) / 255.0     # (10000, 784)
 
-    dataset_train = tf.data.Dataset.from_tensor_slices((x_train, y_train))
-    dataset_test = tf.data.Dataset.from_tensor_slices((x_test, y_test))
-
-    return dataset_train, dataset_test
+    return x_train, y_train, x_test, y_test
 
 
 def permute(x, p):
     return tf.gather(x, p)
 
+
+def load_omniglot_datasets():
+    with open('omniglot.pickle', 'rb') as handle:
+        omniglot_data = pickle.load(handle)
+
+    return omniglot_data

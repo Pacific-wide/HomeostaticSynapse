@@ -7,7 +7,7 @@ import model
 import dataset as mnist
 
 # Task flag
-flags.DEFINE_integer('l_seq', '50', 'Length of a training sequence.')
+flags.DEFINE_integer('l_seq', '10', 'Length of a training sequence.')
 flags.DEFINE_integer('seed', '2', 'Random seed.')
 
 # Estimator flags
@@ -25,9 +25,12 @@ FLAGS = flags.FLAGS
 def prepare_permutations(n_task, seed):
     np.random.seed(seed)
     n_pixel = 784
-    p = np.zeros((n_task, n_pixel))
+    n_task_ext = 2 * n_task - 1
+    p = np.zeros((n_task_ext, n_pixel))
     for i in range(n_task):
         p[i] = np.random.permutation(n_pixel)
+        if i < (n_task-1):
+            p[n_task_ext-i-1] = p[i]
 
     p = p.astype(np.int32)
 
@@ -35,7 +38,7 @@ def prepare_permutations(n_task, seed):
 
 
 def main(unused_argv):
-    run_config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir, save_checkpoints_steps=6000)
+    run_config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir, save_checkpoints_steps=12000)
     params = {'lr': FLAGS.lr, 'meta_lr': FLAGS.meta_lr, 'layers': [20, 20], 'model': FLAGS.model_dir}
 
     l_seq = FLAGS.l_seq
@@ -48,10 +51,11 @@ def main(unused_argv):
     pre_estimator.train(input_fn=lambda: input.train_input_fn(x_tr, y_tr, FLAGS.n_epoch, FLAGS.n_batch, p[0]))
 
     # Meta network training
-    estimator = tf.estimator.Estimator(model_fn=model.meta_ewc,
-                                       config=run_config,
-                                       params=params)
+
     for i in range(1, l_seq):
+        estimator = tf.estimator.Estimator(model_fn=model.meta_ewc,
+                                           config=run_config,
+                                           params=params)
         estimator.train(input_fn=lambda: input.train_input_fn(x_tr, y_tr, FLAGS.n_epoch, FLAGS.n_batch, p[i]))
 
 

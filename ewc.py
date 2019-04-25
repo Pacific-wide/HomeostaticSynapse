@@ -13,34 +13,16 @@ flags.DEFINE_integer('seed', '1', 'Random seed.')
 flags.DEFINE_integer('n_task_eval', '10', 'Number of tasks in evaluation sequence.')
 
 # Estimator flag
-flags.DEFINE_string('model', 'meta', 'Model to evaluate.')
-flags.DEFINE_string('model_dir', 'model', 'Path to output model directory.')
+flags.DEFINE_string('model', 'ewc', 'Model to evaluate.')
 flags.DEFINE_string('eval_model_dir', 'eval_model', 'Path to test model directory.')
 flags.DEFINE_integer('n_epoch', 1, 'Number of train epochs.')
 
 # Optimizer flags
 flags.DEFINE_float('lr', 5e-2, 'Learning rate of an main optimizer.')
-flags.DEFINE_float('alpha', 0.0, 'alpha for additional loss')
+flags.DEFINE_float('alpha', 3.0, 'alpha for additional loss')
 flags.DEFINE_integer('n_batch', 10, 'Number of examples in a batch')
 
-
-# Meta-Learning flags
-
 FLAGS = flags.FLAGS
-
-
-def make_initial_matching_dict():
-    matching_dict = {}
-    layers = ['dense1', 'dense2', 'dense3']
-    kinds = ['kernel', 'bias']
-
-    for layer in layers:
-        for kind in kinds:
-            sur = layer + '/' + kind
-            key = 'meta/' + sur
-            matching_dict[key] = key
-
-    return matching_dict
 
 
 def save_confusion_matrix(conf_mat, cur_model):
@@ -67,21 +49,14 @@ def main(unused_argv):
                                              save_checkpoints_steps=6000)
 
     params = {'lr': FLAGS.lr,
-              'model_dir': FLAGS.model_dir,
               'eval_model_dir': FLAGS.eval_model_dir,
               'layers': [784, 100, 100, 10],
               'alpha': FLAGS.alpha}
 
-    initial_matching_dict = make_initial_matching_dict()
-
-    ws0 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=tf.train.latest_checkpoint('model'),
-                                         var_name_to_prev_var_name=initial_matching_dict)
-
-    pre_estimator = tf.estimator.Estimator(model_fn=model.meta_base,
+    pre_estimator = tf.estimator.Estimator(model_fn=model.base,
                                            config=eval_run_config,
-                                           params=params, warm_start_from=ws0)
-
-    estimator = tf.estimator.Estimator(model_fn=model.meta_eval,
+                                           params=params)
+    estimator = tf.estimator.Estimator(model_fn=model.ewc,
                                        config=eval_run_config,
                                        params=params)
 
@@ -100,6 +75,7 @@ def main(unused_argv):
     # 2nd to nth Tasks learning with Meta network (new optimizer)
     for i in range(1, n_task_eval):
         estimator.train(input_fn=lambda: input.train_input_fn(x_tr, y_tr, FLAGS.n_epoch, FLAGS.n_batch, p_eval[i]))
+
         for j in range(i+1):
             result_dict = estimator.evaluate(input_fn=lambda: input.eval_input_fn(x_te, y_te, FLAGS.n_batch, p_eval[j]))
             eval_accuracy_mat[i, j] = result_dict['accuracy']
@@ -107,6 +83,7 @@ def main(unused_argv):
 
     print(eval_accuracy_mat)
     save_confusion_matrix(eval_accuracy_mat, FLAGS.model)
+    print(FLAGS.model)
 
 
 if __name__ == '__main__':

@@ -1,29 +1,32 @@
 import matplotlib as mpl
 import numpy as np
-from matplotlib import pyplot as plt
-from glob import glob
+import tensorflow as tf
 mpl.use('Agg')
+
+from matplotlib import pyplot as plt
 
 mpl.rcParams["font.family"] = "Times New Roman"
 mpl.rcParams["font.family"] = "DejaVu Serif"
 
+
 def main(unused_argv):
-    models = ['single', 'ewc', 'meta']
+    models = ['single', 'ewc', 'multi', 'meta']
     colors = {'single': 'C0',
               'ewc': 'C1',
-              'meta': 'C2'}
+              'multi': 'C2',
+              'meta': 'C3'}
 
     evoplot = {}
+    n_task = 10
     path = 'result/'
-    for i in range(10):
+    for i in range(n_task):
         evoplot[i] = {}
         for model in models:
             data = np.load(path + model + '.npy')
             evoplot[i][model] = data[:, i]
 
-    plt.figure(figsize=(7, 10 * 5))
-    for i in range(10):
-        plt.subplot(10, 1, i + 1)
+    for i in range(n_task):
+        plt.figure(figsize=(10, 8))
         for model in models:
             if model in evoplot[i]:
                 x = np.arange(len(evoplot[i][model]))
@@ -38,7 +41,7 @@ def main(unused_argv):
         plt.title("Task %d's accuracy" % int(i + 1), fontsize=16)
         plt.legend(fontsize=12)
         plt.tight_layout()
-        plt.savefig('evoplot.pdf', bbox_inches='tight')
+        plt.savefig('figure/evo' + str(i) + '.pdf', bbox_inches='tight')
 
 
 if __name__ == '__main__':
