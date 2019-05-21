@@ -13,7 +13,7 @@ class ModelFNCreator(object):
         self.OptimizerSpec = OptimizerSpec
 
     @abc.abstractmethod
-    def create(self, model, features, labels, mode):
+    def create(self):
         pass
 
 

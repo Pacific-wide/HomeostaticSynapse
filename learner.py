@@ -34,7 +34,7 @@ class EstimatorLearner(NNLearner):
 class OptimizerSpec(object):
     def __init__(self, optimzier, learning_rate):
         self.optimizer = optimzier
-        self.learning_rate =learning_rate
+        self.learning_rate = learning_rate
 
 
 class LearningSpec(object):
