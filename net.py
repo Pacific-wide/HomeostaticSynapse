@@ -1,3 +1,4 @@
+import tensorflow as tf
 
 
 class FCN(tf.keras.models.Model):
@@ -11,6 +12,7 @@ class FCN(tf.keras.models.Model):
 
     def call(self, inputs):
         return self.net(inputs)
+
 
 class MetaFCN(tf.keras.models.Model):
     def __init__(self):
