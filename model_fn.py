@@ -28,7 +28,7 @@ class ModelFNCreator(object):
 
 class SingleModelFNCreator(ModelFNCreator):
     def __init__(self, model, features, labels, mode, OptimizerSpec):
-        super(ModelFNCreator, self).__init__(model, features, labels, OptimizerSpec)
+        super(ModelFNCreator, self).__init__(model, features, labels, mode, OptimizerSpec)
 
     def create(self):
         one_hot_labels = tf.one_hot(self.labels, 10)

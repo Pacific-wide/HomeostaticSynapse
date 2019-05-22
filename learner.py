@@ -16,7 +16,7 @@ class NNLearner(object):
 
 class EstimatorLearner(NNLearner):
     def __init__(self, dataset, model, learning_spec):
-        super(NNLearner, self).__init__(dataset, model, learning_spec)
+        super(EstimatorLearner, self).__init__(dataset, model, learning_spec)
         self.estimator = tf.estimator.Estimator(model_fn=self.model_fn)
 
     def train(self):
