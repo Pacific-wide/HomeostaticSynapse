@@ -32,8 +32,8 @@ class EstimatorLearner(NNLearner):
 
 
 class OptimizerSpec(object):
-    def __init__(self, optimzier, learning_rate):
-        self.optimizer = optimzier
+    def __init__(self, optimizer, learning_rate):
+        self.optimizer = optimizer
         self.learning_rate = learning_rate
 
 
