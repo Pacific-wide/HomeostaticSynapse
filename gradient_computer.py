@@ -12,9 +12,9 @@ class GradientComputer(object):
         pass
 
 
-class NormalGradientComputer(object):
+class NormalGradientComputer(GradientComputer):
     def __init__(self, opt, loss):
-        super(GradientComputer, self).__init__(opt, loss)
+        super(NormalGradientComputer, self).__init__(opt, loss)
 
     def compute(self):
-        return self.opt.compute_gradient()
+        return self.opt.compute_gradients(self.loss)

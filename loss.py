@@ -12,9 +12,9 @@ class Loss(object):
         pass
 
 
-class SoftMaxCrossEntropyLoss(object):
+class SoftMaxCrossEntropyLoss(Loss):
     def __init__(self, prediction, label):
-        super(Loss, self).__init__(prediction, label)
+        super(SoftMaxCrossEntropyLoss, self).__init__(prediction, label)
 
     def compute(self):
-        return tf.losses.softmax_cross_entropy(onehot_labels=self.label, logits=self.prediction)
+        return tf.losses.softmax_cross_entropy(logits=self.prediction, onehot_labels=self.label)

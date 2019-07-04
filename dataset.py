@@ -2,12 +2,6 @@ import numpy as np
 import tensorflow as tf
 
 
-class Dataset(object):
-    def __init__(self, features, labels):
-        self.features = features
-        self.labels = labels
-
-
 class Mnist(object):
     def __init__(self):
         self.load()
@@ -15,16 +9,17 @@ class Mnist(object):
 
     def load(self):
         train, test = tf.keras.datasets.mnist.load_data()
-        x_train, y_train = train
-        x_test, y_test = test
-        self.train = Dataset(x_train, y_train)
-        self.test = Dataset(x_test, y_test)
+        self.x_train, self.y_train = train
+        self.x_test, self.y_test = test
 
     def normalize(self):
-        x_train = self.train.features.astype(np.float32)  # (60000, 28, 28)
-        x_test = self.test.features.astype(np.float32)  # (10000, 28, 28)
-        self.train.features = x_train.reshape(x_train.shape[0], -1) / 255.0  # (60000, 784)
-        self.test.features = x_test.reshape(x_test.shape[0], -1) / 255.0  # (10000, 784)
+        self.x_train = self.x_train.astype(np.float32)  # (60000, 28, 28)
+        self.x_test = self.x_test.astype(np.float32)  # (10000, 28, 28)
+        self.x_train = self.x_train.reshape(self.x_train.shape[0], -1) / 255.0  # (60000, 784)
+        self.x_test = self.x_test.reshape(self.x_test.shape[0], -1) / 255.0  # (10000, 784)
+
+        self.y_train = self.y_train.astype(np.int64)  # (60000, )
+        self.y_test = self.y_test.astype(np.int64)  # (10000, )
 
 
 class PermMnist(Mnist):
@@ -34,7 +29,8 @@ class PermMnist(Mnist):
         self.permute()
 
     def permute(self):
-        self.train.features = self.train.features[self.permutation]
+        self.x_train = self.x_train[:, self.permutation]
+        self.x_test = self.x_test[:, self.permutation]
 
 
 class RandPermMnist(PermMnist):
@@ -52,3 +48,16 @@ class SetOfRandPermMnist(object):
     def generate(self):
         for i in range(self.n_task):
             self.list.append(RandPermMnist())
+
+    def concat(self):
+        x_train_list = []
+        y_train_list = []
+        for i in range(self.n_task):
+            x_train_list.append(self.list[i].x_train)
+            y_train_list.append(self.list[i].y_train)
+
+        multi_dataset = RandPermMnist()
+        multi_dataset.x_train = np.concatenate(x_train_list, axis=0)
+        multi_dataset.y_train = np.concatenate(y_train_list, axis=0)
+
+        return multi_dataset

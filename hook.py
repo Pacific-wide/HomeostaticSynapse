@@ -38,7 +38,7 @@ class AverageAssignGradientHook(GradientHook):
 
 class SquareAccumulationGradientHook(GradientHook):
     def __init__(self, grad_and_var):
-        super(GradientHook, self).__init__(grad_and_var)
+        super(SquareAccumulationGradientHook, self).__init__(grad_and_var)
 
     def begin(self):
         self.global_step = tf.train.get_global_step()
