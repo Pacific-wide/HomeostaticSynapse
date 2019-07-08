@@ -6,7 +6,7 @@ import numpy as np
 
 
 def main(unused_argv):
-    learning_rate = 1e-3
+    learning_rate = 1e-2
     n_epoch = 1
     n_batch = 10
     n_task = 10
@@ -17,7 +17,7 @@ def main(unused_argv):
 
     my_opt = op.SGDOptimizer().build(learning_rate)
     my_opt_spec = learner.OptimizerSpec(my_opt, learning_rate)
-    my_learning_spec = learner.LearningSpec(n_epoch, n_batch, n_task, my_opt_spec)
+    my_learning_spec = learner.LearningSpec(n_epoch, n_batch, my_opt_spec)
 
     accuracy_matrix = np.zeros((n_task, n_task), dtype=np.float32)
 
@@ -33,7 +33,6 @@ def main(unused_argv):
 
     np.set_printoptions(precision=4)
     print(accuracy_matrix)
-    print(accuracy_matrix.sum()/55.0)
 
 
 if __name__ == '__main__':

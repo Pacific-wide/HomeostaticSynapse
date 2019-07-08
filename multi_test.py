@@ -8,8 +8,10 @@ import numpy as np
 def main(unused_argv):
     learning_rate = 5e-2
     n_epoch = 1
-    n_batch = 100
     n_task = 10
+    n_batch = n_task * 10
+
+    np.random.seed(2)
 
     run_config = tf.estimator.RunConfig(model_dir="result", save_checkpoints_steps=6000)
 
@@ -17,16 +19,16 @@ def main(unused_argv):
 
     my_opt = op.SGDOptimizer().build(learning_rate)
     my_opt_spec = learner.OptimizerSpec(my_opt, learning_rate)
-    my_learning_spec = learner.LearningSpec(n_epoch, n_batch, my_opt_spec)
+    my_learning_spec = learner.LearningSpec(n_epoch, n_batch, n_task, my_opt_spec)
 
     accuracy_matrix = np.zeros(n_task, dtype=np.float32)
 
     multi_dataset = set_single_dataset.concat()
-    single_learner = learner.EstimatorLearner(multi_dataset, my_learning_spec, run_config)
-    single_learner.train()
+    multi_learner = learner.MultiEstimatorLearner(multi_dataset, my_learning_spec, run_config)
+    multi_learner.train()
 
     for i in range(n_task):
-        eval_learner = learner.EstimatorLearner(set_single_dataset.list[i], my_learning_spec, run_config)
+        eval_learner = learner.SingleEstimatorLearner(set_single_dataset.list[i], my_learning_spec, run_config)
         result = eval_learner.evaluate()
         accuracy_matrix[i] = result['accuracy']
 
