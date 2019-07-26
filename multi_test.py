@@ -11,9 +11,7 @@ def main(unused_argv):
     n_task = 10
     n_batch = n_task * 10
 
-    np.random.seed(2)
-
-    run_config = tf.estimator.RunConfig(model_dir="result", save_checkpoints_steps=6000)
+    run_config = tf.estimator.RunConfig(model_dir="multi10", save_checkpoints_steps=6000)
 
     set_single_dataset = dataset.SetOfRandPermMnist(n_task)
 

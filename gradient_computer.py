@@ -18,3 +18,12 @@ class NormalGradientComputer(GradientComputer):
 
     def compute(self):
         return self.opt.compute_gradients(self.loss)
+
+
+class ScopeGradientComputer(GradientComputer):
+    def __init__(self, opt, loss, var_scope):
+        super(ScopeGradientComputer, self).__init__(opt, loss)
+        self.var_scope = var_scope
+
+    def compute(self):
+        return self.opt.compute_gradients(self.loss, var_list=self.var_scope)
