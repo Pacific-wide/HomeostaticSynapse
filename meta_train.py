@@ -7,12 +7,12 @@ import numpy as np
 
 def main(unused_argv):
     # learning rate
-    learning_rate = 5e-2
-    meta_learning_rate = 5e-2
+    learning_rate = 5e-3
+    meta_learning_rate = 5e-3
 
     # learning parameter
     n_epoch = 1
-    n_task = 20
+    n_task = 10
     n_batch = 10
 
     # model path
@@ -20,7 +20,7 @@ def main(unused_argv):
     model_dir = "meta"
     pre_model_dir = model_dir
 
-    np.random.seed(2)
+    np.random.seed(5)
 
     first_run_config = tf.estimator.RunConfig(model_dir=first_model_dir, save_checkpoints_steps=6000)
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
@@ -38,10 +38,10 @@ def main(unused_argv):
     base_learning_spec = learner.LearningSpec(n_epoch, n_batch, n_task, model_dir, base_opt_spec)
 
     # generate sequence dataset
-    set_single_dataset = dataset.SetOfRandPermMnist(n_task)
+    set_single_dataset = dataset.SetOfRandPermMnist(n_task+1)
 
     # Base training
-    sinlge_dataset = set_single_dataset.list[0]
+    sinlge_dataset = set_single_dataset.list[n_task]
     single_learner = learner.SingleEstimatorLearner(sinlge_dataset, learning_spec, first_run_config)
     single_learner.train()
 

@@ -11,7 +11,8 @@ class FCN(tf.keras.models.Model):
     def call(self, inputs):
         return self.net(inputs)
 
-    def make_layer_list(self, prefix, n_layer, n_input, n_output, n_unit):
+    @staticmethod
+    def make_layer_list(prefix, n_layer, n_input, n_output, n_unit):
         layers = []
         layers.append(tf.keras.layers.InputLayer((n_input,)))
         for i in range(n_layer):

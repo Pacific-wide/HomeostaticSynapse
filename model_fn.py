@@ -9,8 +9,7 @@ import numpy as np
 
 class ModelFNCreator(object):
     def __init__(self, features, labels, mode, optimizer_spec):
-        self.model = net.FCN("main", n_layer=2, n_input=784, n_output=10, n_unit=20)
-        print(self.model)
+        self.model = net.FCN("main", n_layer=2, n_input=optimizer_spec.d_in, n_output=10, n_unit=100)
         self.features = features
         self.logits = self.model(features)
         self.predictions = tf.argmax(self.logits, axis=1)
@@ -56,9 +55,10 @@ class SingleModelFNCreator(ModelFNCreator):
 class EWCModelFNCreator(ModelFNCreator):
     def __init__(self, features, labels, mode, optimizer_spec):
         super(EWCModelFNCreator, self).__init__(features, labels, mode, optimizer_spec)
+        self.alpha = 0.01
 
     def create(self):
-        self.loss = self.loss + self.add_ewc_loss(self.optimizer_spec.pre_model_dir)
+        self.loss = self.loss + self.alpha * self.add_ewc_loss(self.optimizer_spec.pre_model_dir)
         gradient_computer = gc.NormalGradientComputer(self.opt, self.loss)
         grads_and_vars = gradient_computer.compute()
 
@@ -79,11 +79,92 @@ class EWCModelFNCreator(ModelFNCreator):
             cur_var = w
             pre_var = tf.train.load_variable(checkpoint, name)
             fisher = tf.train.load_variable(checkpoint, 'fisher/' + name)
-            layer_decay = 0.25 * (i+1) * np.ones(w.shape)
-            fisher = fisher * layer_decay
             ewc_loss = ewc_loss + tf.losses.mean_squared_error(cur_var, pre_var, fisher)
 
         return ewc_loss
+
+
+class MetaTestModelFNCreator(ModelFNCreator):
+    def __init__(self, features, labels, mode, optimizer_spec):
+        super(MetaTestModelFNCreator, self).__init__(features, labels, mode, optimizer_spec)
+
+        self.meta_model = net.FCN("meta", n_layer=4, n_input=3, n_output=1, n_unit=30)
+        self.alpha = 0.0
+
+    def create(self):
+        # current gradient
+        tf.summary.scalar(name='losses/cur_loss', tensor=self.loss)
+        gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
+        grads_and_vars = gradient_computer.compute()
+        grads, vars = zip(*grads_and_vars)
+        pre_grads = self.load_pre_grads(self.optimizer_spec.pre_model_dir)
+
+        meta_batch = self.combine_meta_features(grads, pre_grads, self.model.weights)
+        meta_output = self.meta_model(meta_batch)
+
+        self.total_loss = self.loss + self.alpha * self.add_meta_loss(meta_output)
+        total_gradient_computer = gc.ScopeGradientComputer(self.opt, self.total_loss, self.model.weights)
+        total_grads_and_vars = total_gradient_computer.compute()
+
+        train_op = self.opt.apply_gradients(total_grads_and_vars, global_step=tf.train.get_global_step())
+
+        gradient_hook = []
+        for total_grad_and_var in total_grads_and_vars:
+            gradient_hook.append(hook.SquareAccumulationGradientHook(total_grad_and_var))
+
+        return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op, training_hooks=gradient_hook)
+
+    def add_meta_loss(self, meta_output):
+        meta_loss = 0
+        layer_meta_output = self.flat_to_layer(meta_output, self.model.weights)
+
+        for (w, m) in zip(self.model.weights, layer_meta_output):
+            name = w.name[:-2]
+            cur_var = w
+            pre_var = tf.train.load_variable("meta", name)
+            fisher = m[0]
+            meta_loss = meta_loss + tf.losses.mean_squared_error(cur_var, pre_var, fisher)
+
+        return meta_loss
+
+    def load_pre_grads(self, checkpoint):
+        pre_grads = []
+        for i, w in enumerate(self.model.weights):
+            name = w.name[:-2]
+            pre_grad = tf.train.load_variable(checkpoint, 'fisher/' + name)
+            pre_grads.append(pre_grad)
+
+        return pre_grads
+
+    @staticmethod
+    def layer_to_flat(grads):
+        grad_list = []
+        for grad in grads:
+            flat_grad = tf.reshape(grad, [-1, 1])
+            grad_list.append(flat_grad)
+
+        return tf.concat(grad_list, axis=0)
+
+    @staticmethod
+    def flat_to_layer(grads, cur_vars):
+        grads_and_vars = []
+        for var in cur_vars:
+            pre_shape = tf.shape(var)
+            flat_var = tf.reshape(var, [-1, 1])
+            size = tf.shape(flat_var)[0]
+            begin = 0
+            grad_vec = tf.reshape(grads, [-1])
+            flat_grad = tf.slice(grad_vec, [begin], [size])
+            grad = tf.reshape(flat_grad, pre_shape)
+            grads_and_vars.append((grad, var))
+            begin = begin + size
+
+        return grads_and_vars
+
+    def combine_meta_features(self, cur, pre, weight):
+        combine_list = (self.layer_to_flat(cur), self.layer_to_flat(pre), self.layer_to_flat(weight))
+
+        return tf.concat(combine_list, axis=1)
 
 
 class MetaModelFNCreator(ModelFNCreator):
@@ -102,10 +183,9 @@ class MetaModelFNCreator(ModelFNCreator):
         self.meta_optimizer_spec = meta_optimizer_spec
         self.meta_opt = meta_optimizer_spec.optimizer
 
-
-    def create(self):
         self.meta_model = net.FCN("meta", n_layer=4, n_input=3, n_output=1, n_unit=30)
 
+    def create(self):
         # current gradient
         tf.summary.scalar(name='losses/cur_loss', tensor=self.loss)
         gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
@@ -148,7 +228,8 @@ class MetaModelFNCreator(ModelFNCreator):
 
         return pre_grads
 
-    def layer_to_flat(self, grads):
+    @staticmethod
+    def layer_to_flat(grads):
         grad_list = []
         for grad in grads:
             flat_grad = tf.reshape(grad, [-1, 1])
@@ -156,7 +237,8 @@ class MetaModelFNCreator(ModelFNCreator):
 
         return tf.concat(grad_list, axis=0)
 
-    def flat_to_layer(self, grads, cur_vars):
+    @staticmethod
+    def flat_to_layer(grads, cur_vars):
         grads_and_vars = []
         for var in cur_vars:
             pre_shape = tf.shape(var)

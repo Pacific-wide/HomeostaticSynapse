@@ -14,10 +14,13 @@ def main(unused_argv):
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
 
-    single_dataset = dataset.RandPermMnist()
+    # single_dataset = dataset.RandPermMnist()
 
+    single_dataset = dataset.SVHN()
+
+    d_in = single_dataset.d_in
     my_opt = op.SGDOptimizer().build(learning_rate)
-    my_opt_spec = learner.OptimizerSpec(my_opt, learning_rate, pre_model_dir)
+    my_opt_spec = learner.OptimizerSpec(my_opt, learning_rate, d_in, pre_model_dir)
     my_learning_spec = learner.LearningSpec(n_epoch, n_batch, n_task, model_dir, my_opt_spec)
 
     single_learner = learner.SingleEstimatorLearner(single_dataset, my_learning_spec, run_config)
