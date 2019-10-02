@@ -1,25 +1,28 @@
 import tensorflow as tf
 
 
-class FCN(tf.keras.models.Model):
+class FCN(tf.keras.Model):
     def __init__(self, prefix, n_layer, n_input, n_output, n_unit):
         super(FCN, self).__init__()
 
         self.layer_list = self.make_layer_list(prefix, n_layer, n_input, n_output, n_unit)
-        self.net = tf.keras.Sequential(self.layer_list)
 
     def call(self, inputs):
-        return self.net(inputs)
+        for layer in self.layer_list:
+            temp = layer(inputs)
+            inputs = temp
+
+        return temp
 
     @staticmethod
     def make_layer_list(prefix, n_layer, n_input, n_output, n_unit):
         layers = []
         layers.append(tf.keras.layers.InputLayer((n_input,)))
         for i in range(n_layer):
-            layer_name = prefix + '_dense' + str(i + 1)
+            layer_name = prefix + '/dense' + str(i + 1)
             layers.append(tf.keras.layers.Dense(n_unit, activation='relu', name=layer_name))
 
-        layers.append(tf.keras.layers.Dense(n_output, name=prefix + '_dense' + str(n_layer + 1)))
+        layers.append(tf.keras.layers.Dense(n_output, name=prefix + '/dense' + str(n_layer + 1)))
 
         return layers
 

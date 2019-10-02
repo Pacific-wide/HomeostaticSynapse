@@ -37,8 +37,6 @@ class Mnist(DataSet):
         self.y_test = self.y_test.astype(np.int64)  # (10000, )
 
 
-
-
 class PermMnist(Mnist):
     def __init__(self, permutation):
         super(PermMnist, self).__init__()
@@ -132,6 +130,18 @@ class SetOfRandRotaMnist(object):
         return multi_dataset
 
 
+class SetOfAlternativeMnist(object):
+    def __init__(self, n_task):
+        self.list = []
+        self.n_task = int(n_task/2)
+        self.generate()
+
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(RandPermMnist())
+            self.list.append(RandRotaMnist())
+
+
 class SVHN(DataSet):
     def __init__(self):
         super(SVHN, self).__init__()
@@ -161,8 +171,6 @@ class SVHN(DataSet):
         self.y_test = self.y_test.astype(np.int64)
         self.y_train = self.y_train.reshape(-1)   # (73257, )
         self.y_test = self.y_test.reshape(-1)   # (26032, )
-
-
 
 
 class CIFAR10(DataSet):
