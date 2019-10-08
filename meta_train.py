@@ -22,7 +22,7 @@ def main(unused_argv):
     np.random.seed(2)
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
-    ws = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["main"])
+    ws = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start="main*")
 
     # generate sequence dataset
     set_of_datasets = dataset.SetOfRandPermMnist(n_task + 1)
@@ -36,7 +36,7 @@ def main(unused_argv):
     meta_opt_spec = spec.OptimizerSpec(meta_opt, d_in)
     meta_learning_spec = spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, meta_opt_spec)
 
-    my_grouplearner = grouplearner.GroupMetaTrainLearner(set_of_datasets, learning_spec, n_task, run_config, meta_learning_spec, ws)
+    my_grouplearner = grouplearner.GroupMetaTrainLearner(set_of_datasets, learning_spec, n_task, run_config, meta_learning_spec)
     my_grouplearner.train_and_evaluate()
 
 

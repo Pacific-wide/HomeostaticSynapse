@@ -10,7 +10,7 @@ def main(unused_argv):
     n_epoch = 1
     n_batch = 10
     n_task = 1
-    model_dir = "base"
+    model_dir = "single"
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
 
@@ -23,7 +23,7 @@ def main(unused_argv):
     my_opt_spec = spec.OptimizerSpec(my_opt, d_in)
     my_learning_spec = spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, my_opt_spec)
 
-    base_learner = learner.BaseEstimatorLearner(single_dataset, my_learning_spec, run_config)
+    base_learner = learner.SingleEstimatorLearner(single_dataset, my_learning_spec, run_config)
 
     base_learner.train()
 

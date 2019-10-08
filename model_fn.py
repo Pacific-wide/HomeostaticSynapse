@@ -9,7 +9,7 @@ import numpy as np
 
 class ModelFNCreator(object):
     def __init__(self, features, labels, mode, optimizer_spec):
-        self.model = net.FCN("main", n_layer=2, n_input=optimizer_spec.d_in, n_output=10, n_unit=100)
+        self.model = net.Main(optimizer_spec.d_in).build()
         self.features = features
         self.logits = self.model(features)
         self.predictions = tf.argmax(self.logits, axis=1)
@@ -107,7 +107,7 @@ class EWCModelFNCreator(ModelFNCreator):
 class MetaModelFNCreator(ModelFNCreator):
     def __init__(self, features, labels, mode, optimizer_spec):
         super(MetaModelFNCreator, self).__init__(features, labels, mode, optimizer_spec)
-        self.meta_model = net.FCN("meta", n_layer=4, n_input=3, n_output=1, n_unit=100)
+        self.meta_model = net.Meta().build()
 
     def create(self):
         gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
@@ -127,7 +127,7 @@ class MetaModelFNCreator(ModelFNCreator):
     def load_tensors(self, checkpoint, prefix):
         pre_grads = []
         for i, w in enumerate(self.model.weights):
-            name = w.name[9:-2]
+            name = w.name[5:-2]
             print(name)
             pre_grad = tf.train.load_variable(checkpoint, prefix + '/' + name)
             pre_grads.append(pre_grad)
@@ -165,7 +165,7 @@ class MetaTestModelFNCreator(MetaModelFNCreator):
         super(MetaTestModelFNCreator, self).__init__(features, labels, mode, optimizer_spec)
 
         self.learning_spec = learning_spec
-        self.alpha = 0.005
+        self.alpha = 0.001
 
     def create(self):
         # current gradient

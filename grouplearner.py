@@ -78,14 +78,13 @@ class GroupMultiLearner(GroupLearner):
 
 
 class GroupMetaTrainLearner(GroupLearner):
-    def __init__(self, set_of_dataset, learning_spec, n_task, run_config, meta_learning_spec, ws):
+    def __init__(self, set_of_dataset, learning_spec, n_task, run_config, meta_learning_spec):
         super(GroupMetaTrainLearner, self).__init__(set_of_dataset, learning_spec, n_task, run_config)
         self.meta_learning_spec = meta_learning_spec
-        self.ws = ws
 
     def base_train(self):
         base_dataset = self.set_of_dataset.list[0]
-        base_learner = learner.BaseEstimatorLearner(base_dataset, self.learning_spec, self.run_config)
+        base_learner = learner.MetaBaseEstimatorLearner(base_dataset, self.learning_spec, self.run_config)
         base_learner.train()
 
     def train_and_evaluate(self):
@@ -93,7 +92,7 @@ class GroupMetaTrainLearner(GroupLearner):
 
         for i in range(0, self.n_task):
             dataset = self.set_of_dataset.list[i:i+2]
-            meta_learner = learner.MetaTrainEstimatorLearner(dataset, self.learning_spec, self.meta_learning_spec, self.run_config, self.ws)
+            meta_learner = learner.MetaTrainEstimatorLearner(dataset, self.learning_spec, self.meta_learning_spec, self.run_config)
             meta_learner.train()
 
 

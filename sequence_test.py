@@ -11,7 +11,7 @@ def main(unused_argv):
     n_epoch = 1
     n_batch = 10
     n_task = 10
-    model_dir = "single"
+    model_dir = "ewc"
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
 
@@ -23,7 +23,7 @@ def main(unused_argv):
     opt_spec = spec.OptimizerSpec(opt, d_in)
     learning_spec = spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec)
 
-    my_grouplearner = grouplearner.GroupSingleLearner(set_of_datasets, learning_spec, n_task, run_config)
+    my_grouplearner = grouplearner.GroupEWCLearner(set_of_datasets, learning_spec, n_task, run_config)
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
 

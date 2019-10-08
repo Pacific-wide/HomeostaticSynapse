@@ -6,7 +6,7 @@ class GradientHook(tf.train.SessionRunHook):
     def __init__(self, grad_and_var):
         self.gradients = grad_and_var[0]
         self.variable = grad_and_var[1]
-        self.name = self.variable.name[9:-2]
+        self.name = self.variable.name[5:-2]
 
 
 class AverageAssignGradientHook(GradientHook):
