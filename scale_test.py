@@ -8,12 +8,12 @@ import sys
 
 
 def main(argv):
-    n_test = argv[1]
-    learning_rate = 5e-2
+    learning_rates = [5e-2, 5e-2, 5e-2, 5e-2, 5e-2, 5e-3, 5e-3, 5e-3, 5e-3, 5e-3, 5e-4, 5e-4, 5e-4, 5e-4, 5e-4]
+    learning_specs = []
     n_epoch = 1
     n_batch = 10
-    n_task = 10
-    model_dir = "ewc"
+    n_task = len(learning_rates)
+    model_dir = "scale"
     np.random.seed(0)
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
@@ -22,11 +22,12 @@ def main(argv):
 
     d_in = set_of_datasets.list[0].d_in
 
-    opt = op.SGDOptimizer().build(learning_rate)
-    opt_spec = spec.OptimizerSpec(opt, d_in)
-    learning_spec = spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec)
+    for i in range(n_task):
+        opt = op.SGDOptimizer().build(learning_rates[i])
+        opt_spec = spec.OptimizerSpec(opt, d_in)
+        learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec))
 
-    my_grouplearner = grouplearner.GroupEWCLearner(set_of_datasets, learning_spec, n_task, run_config)
+    my_grouplearner = grouplearner.GroupScaleLearner(set_of_datasets, learning_specs[0], n_task, run_config, learning_specs)
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
 
@@ -37,11 +38,6 @@ def main(argv):
 
     print(accuracy_matrix)
     print(average_accuracy)
-
-    filepath = "result/ewc/"+str(n_test)
-    f = open(filepath, 'w')
-    f.write(str(average_accuracy))
-    f.close()
 
 
 if __name__ == '__main__':

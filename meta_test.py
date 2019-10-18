@@ -3,8 +3,10 @@ import tensorflow as tf
 import grouplearner
 import optimizer as op
 import spec
+import numpy as np
 
-def main(unused_argv):
+def main(argv):
+    n_test = argv[1]
     learning_rate = 5e-2
     n_epoch = 1
     n_batch = 10
@@ -12,6 +14,7 @@ def main(unused_argv):
 
     # model path
     model_dir = "meta_test"
+    np.random.seed(0)
 
     # config
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
@@ -30,10 +33,17 @@ def main(unused_argv):
     my_grouplearner = grouplearner.GroupMetaTestLearner(set_of_datasets, learning_spec, n_task, run_config, ws0, ws1)
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
-    print(accuracy_matrix)
 
     n_total = n_task * (n_task + 1) / 2.0
-    print(accuracy_matrix.sum() / n_total)
+    average_accuracy = accuracy_matrix.sum() / n_total
+
+    print(accuracy_matrix)
+    print(average_accuracy)
+
+    filepath = "result/meta_2/" + str(n_test)
+    f = open(filepath, 'w')
+    f.write(str(average_accuracy))
+    f.close()
 
 
 if __name__ == '__main__':

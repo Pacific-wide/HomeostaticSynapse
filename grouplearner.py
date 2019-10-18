@@ -124,3 +124,22 @@ class GroupMetaTestLearner(GroupLearner):
                 self.eval_matrix[i, j] = result['accuracy']
 
         return self.eval_matrix
+
+
+class GroupScaleLearner(GroupLearner):
+    def __init__(self, set_of_dataset, learning_spec, n_task, run_config, learning_specs):
+        super(GroupScaleLearner, self).__init__(set_of_dataset, learning_spec, n_task, run_config)
+        self.learning_specs = learning_specs
+
+    def train_and_evaluate(self):
+        for i in range(self.n_task):
+            dataset = self.set_of_dataset.list[i]
+            single_learner = learner.SingleEstimatorLearner(dataset, self.learning_specs[i], self.run_config)
+            single_learner.train()
+
+            for j in range(i + 1):
+                eval_learner = learner.SingleEstimatorLearner(self.set_of_dataset.list[j], self.learning_spec, self.run_config)
+                result = eval_learner.evaluate()
+                self.eval_matrix[i, j] = result['accuracy']
+
+        return self.eval_matrix

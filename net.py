@@ -10,7 +10,7 @@ class FCN(object):
     def make_layer_list(self, prefix, n_layer, n_input, n_output, n_unit):
         layers = []
         layers.append(tf.keras.layers.InputLayer((n_input,)))
-        print(prefix)
+
         for i in range(n_layer):
             layer_name = prefix + '/dense' + str(i + 1)
             layers.append(tf.keras.layers.Dense(n_unit, activation='relu', name=layer_name))

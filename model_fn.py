@@ -37,7 +37,6 @@ class SingleModelFNCreator(ModelFNCreator):
         super(SingleModelFNCreator, self).__init__(features, labels, mode, optimizer_spec)
 
     def create(self):
-        print(self.model.weights)
         gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
         grads_and_vars = gradient_computer.compute()
 
@@ -95,7 +94,7 @@ class EWCModelFNCreator(ModelFNCreator):
         ewc_loss = 0
         for i, w in enumerate(self.model.weights):
             name = w.name[:-2]
-            layer_name = w.name[9:-2]
+            layer_name = w.name[5:-2]
             cur_var = w
             pre_var = tf.train.load_variable(checkpoint, name)
             fisher = tf.train.load_variable(checkpoint, 'fisher/' + layer_name)
@@ -128,7 +127,6 @@ class MetaModelFNCreator(ModelFNCreator):
         pre_grads = []
         for i, w in enumerate(self.model.weights):
             name = w.name[5:-2]
-            print(name)
             pre_grad = tf.train.load_variable(checkpoint, prefix + '/' + name)
             pre_grads.append(pre_grad)
 
