@@ -8,11 +8,16 @@ import sys
 
 
 def main(argv):
-    n_test = argv[1]
-    learning_rate = 5e-2
+    print(argv)
+    alpha = float(argv[1])
+    learning_rate = float(argv[2])
+
     n_epoch = 1
     n_batch = 10
-    n_task = 10
+    n_task = 20
+    learning_rates = learning_rate * np.ones(n_task)
+    learning_specs = []
+
     model_dir = "ewc"
     np.random.seed(0)
 
@@ -22,11 +27,12 @@ def main(argv):
 
     d_in = set_of_datasets.list[0].d_in
 
-    opt = op.SGDOptimizer().build(learning_rate)
-    opt_spec = spec.OptimizerSpec(opt, d_in)
-    learning_spec = spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec)
+    for i in range(n_task):
+        opt = op.SGDOptimizer().build(learning_rates[i])
+        opt_spec = spec.OptimizerSpec(opt, d_in)
+        learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec))
 
-    my_grouplearner = grouplearner.GroupEWCLearner(set_of_datasets, learning_spec, n_task, run_config)
+    my_grouplearner = grouplearner.GroupEWCLearner(set_of_datasets, learning_specs, n_task, run_config)
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
 
@@ -38,9 +44,10 @@ def main(argv):
     print(accuracy_matrix)
     print(average_accuracy)
 
-    filepath = "result/ewc/"+str(n_test)
-    f = open(filepath, 'w')
-    f.write(str(average_accuracy))
+    filepath = "result.txt"
+    f = open(filepath, 'a')
+    f.write("(alpha,lr) = (" + str(alpha) +","+ str(learning_rate) + ") ")
+    f.write(str(round(average_accuracy, 4)) + "\n")
     f.close()
 
 

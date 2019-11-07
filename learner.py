@@ -100,6 +100,16 @@ class EWCEstimatorLearner(EstimatorLearner):
         return model_fn_creator.create()
 
 
+class REWCEstimatorLearner(EstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config):
+        super(REWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+
+    def model_fn(self, features, labels, mode):
+        model_fn_creator = model_fn.REWCModelFNCreator(features, labels, mode, self.learning_spec.optimizer_spec, self.learning_spec)
+
+        return model_fn_creator.create()
+
+
 class MultiEstimatorLearner(EstimatorLearner):
     def __init__(self, dataset, learning_spec, run_config):
         super(MultiEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
