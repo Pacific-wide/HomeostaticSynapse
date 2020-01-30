@@ -3,28 +3,29 @@ import tensorflow as tf
 import grouplearner
 import spec
 import optimizer as op
+import numpy as np
 import metric
 import logger
-import numpy as np
+import sys
 
 
 def main(argv):
     print(argv)
-    seed = int(argv[1])
-    alpha = int(argv[2])
+    alpha = float(argv[1])
+    learning_rate = float(argv[2])
 
     learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
-    n_task = 40
-
+    n_task = int(argv[1])
+    alpha = 0.1
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
-    model_dir = "single"
-    np.random.seed(seed)
+    model_dir = "multi"+str(n_task)
+    np.random.seed(2)
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_task))
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
 
     set_of_datasets = dataset.SetOfRandPermMnist(n_task)
 
@@ -36,7 +37,6 @@ def main(argv):
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec, alpha))
 
     my_grouplearner = grouplearner.GroupSingleLearner(set_of_datasets, learning_specs, n_task, run_config)
-    # my_grouplearner = grouplearner.GroupEWCLearner(set_of_datasets, learning_specs, n_task, run_config)
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
 
@@ -47,8 +47,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    # filepath = "r_"+model_dir+".txt"
-    filepath = "intro.txt"
+    filepath = "r_multi.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs)
 
 

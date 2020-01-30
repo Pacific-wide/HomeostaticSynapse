@@ -11,11 +11,12 @@ def main(argv):
     print(argv)
     alpha = float(argv[1])
     skip_rate = float(argv[2])
+    lr = float(argv[3])
 
-    learning_rate = 5e-4
+    learning_rate = lr
     n_epoch = 1
     n_batch = 10
-    n_task = 4
+    n_task = 20
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
@@ -47,7 +48,7 @@ def main(argv):
 
     filepath = "sec_result.txt"
     f = open(filepath, 'a')
-    f.write("(alpha, skip_rate) = (" + str(alpha) +","+ str(skip_rate) + ") ")
+    f.write("(alpha, skip_rate, lr) = (" + str(alpha) +","+ str(skip_rate) +","+ str(lr) + ") ")
     f.write(str(round(average_accuracy, 4)) + "\n")
     f.close()
 

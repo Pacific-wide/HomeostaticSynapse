@@ -70,12 +70,42 @@ class MetaBaseEstimatorLearner(EstimatorLearner):
         return model_fn_creator.create()
 
 
-class MetaWarmBaseEstimatorLearner(WarmStartEstimatorLearner):
-    def __init__(self, dataset, learning_spec, run_config, ws):
-        super(MetaWarmBaseEstimatorLearner, self).__init__(dataset, learning_spec, run_config, ws)
+class MetaGradientBaseEstimatorLearner(EstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config):
+        super(MetaGradientBaseEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
 
     def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.MetaModelFNCreator(features, labels, mode, self.learning_spec.optimizer_spec)
+        model_fn_creator = model_fn.MetaGradientModelFNCreator(features, labels, mode, self.learning_spec.optimizer_spec)
+
+        return model_fn_creator.create()
+
+
+class MetaAlphaBaseEstimatorLearner(EstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config):
+        super(MetaAlphaBaseEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+
+    def model_fn(self, features, labels, mode):
+        model_fn_creator = model_fn.MetaAlphaModelFNCreator(features, labels, mode, self.learning_spec.optimizer_spec)
+
+        return model_fn_creator.create()
+
+
+class MetaGradientWarmBaseEstimatorLearner(WarmStartEstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config, ws):
+        super(MetaGradientWarmBaseEstimatorLearner, self).__init__(dataset, learning_spec, run_config, ws)
+
+    def model_fn(self, features, labels, mode):
+        model_fn_creator = model_fn.MetaGradientModelFNCreator(features, labels, mode, self.learning_spec.optimizer_spec)
+
+        return model_fn_creator.create()
+
+
+class MetaAlphaWarmBaseEstimatorLearner(WarmStartEstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config, ws):
+        super(MetaAlphaWarmBaseEstimatorLearner, self).__init__(dataset, learning_spec, run_config, ws)
+
+    def model_fn(self, features, labels, mode):
+        model_fn_creator = model_fn.MetaAlphaModelFNCreator(features, labels, mode, self.learning_spec.optimizer_spec)
 
         return model_fn_creator.create()
 
@@ -96,16 +126,6 @@ class EWCEstimatorLearner(EstimatorLearner):
 
     def model_fn(self, features, labels, mode):
         model_fn_creator = model_fn.EWCModelFNCreator(features, labels, mode, self.learning_spec.optimizer_spec, self.learning_spec)
-
-        return model_fn_creator.create()
-
-
-class REWCEstimatorLearner(EstimatorLearner):
-    def __init__(self, dataset, learning_spec, run_config):
-        super(REWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
-
-    def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.REWCModelFNCreator(features, labels, mode, self.learning_spec.optimizer_spec, self.learning_spec)
 
         return model_fn_creator.create()
 
@@ -132,7 +152,9 @@ class MetaWarmTestEstimatorLearner(WarmStartEstimatorLearner):
         super(MetaWarmTestEstimatorLearner, self).__init__(dataset, learning_spec, run_config, ws)
 
     def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.MetaTestModelFNCreator(features, labels, mode, self.learning_spec.optimizer_spec, self.learning_spec)
+        model_fn_creator = model_fn.MetaTestModelFNCreator(features, labels, mode,
+                                                           self.learning_spec.optimizer_spec,
+                                                           self.learning_spec)
 
         return model_fn_creator.create()
 
@@ -143,6 +165,18 @@ class MetaTestEstimatorLearner(EstimatorLearner):
 
     def model_fn(self, features, labels, mode):
         model_fn_creator = model_fn.MetaTestModelFNCreator(features, labels, mode, self.learning_spec.optimizer_spec)
+
+        return model_fn_creator.create()
+
+
+class MetaAlphaWarmTestEstimatorLearner(MetaWarmTestEstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config, ws):
+        super(MetaAlphaWarmTestEstimatorLearner, self).__init__(dataset, learning_spec, run_config, ws)
+
+    def model_fn(self, features, labels, mode):
+        model_fn_creator = model_fn.MetaAlphaTestModelFNCreator(features, labels, mode,
+                                                                self.learning_spec.optimizer_spec,
+                                                                self.learning_spec)
 
         return model_fn_creator.create()
 
@@ -208,3 +242,12 @@ class MetaTrainEstimatorLearner(MetaLearner):
         x, y = zip(*z)
 
         return tf.data.Dataset.from_tensor_slices((tf.stack(x), tf.stack(y)))
+
+
+class MetaAlphaTrainEstimatorLearner(MetaTrainEstimatorLearner):
+    def model_fn(self, features, labels, mode):
+        model_fn_creator = model_fn.MetaAlphaTrainModelFNCreator(features, labels, mode,
+                                                                 self.learning_spec.optimizer_spec,
+                                                                 self.meta_learning_spec)
+
+        return model_fn_creator.create()

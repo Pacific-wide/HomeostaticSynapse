@@ -6,9 +6,9 @@ import optimizer as op
 
 
 def main(unused_argv):
-    learning_rate = 5e-2
+    learning_rate = 1e-2
     n_epoch = 1
-    n_batch = 10
+    n_batch = 100
     n_task = 1
     model_dir = "single"
 
