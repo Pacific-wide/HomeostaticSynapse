@@ -94,7 +94,7 @@ class RotaMnist(Mnist):
             img = Image.fromarray(data[i], mode='L')
             result[i] = img.rotate(self.angle)
 
-        result = result.reshape(-1, 28*28)
+        result = result.reshape(-1, 28 * 28)
         result = result.astype(np.float32)
 
         return result

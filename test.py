@@ -3,16 +3,20 @@ import tensorflow as tf
 import learner
 import spec
 import optimizer as op
+import numpy as np
 
-
-def main(unused_argv):
-    learning_rate = 1e-2
+def main(argv):
+    print(argv)
+    seed = int(argv[1])
+    learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
     n_task = 1
-    model_dir = "single"
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
+    np.random.seed(seed)
+    model_dir = "ind"
+
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=600)
 
     single_dataset = dataset.RandPermMnist()
 

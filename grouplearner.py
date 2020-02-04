@@ -62,6 +62,31 @@ class GroupEWCLearner(GroupLearner):
         return self.eval_matrix
 
 
+class GroupFullEWCLearner(GroupEWCLearner):
+    def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
+        super(GroupFullEWCLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+
+    def base_train(self):
+        base_dataset = self.set_of_dataset.list[0]
+        base_learner = learner.FullBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config)
+        base_learner.train()
+
+        result = base_learner.evaluate()
+        self.eval_matrix[0, 0] = result['accuracy']
+
+    def train_and_evaluate(self):
+        self.base_train()
+
+        for i in range(1, self.n_task):
+            dataset = self.set_of_dataset.list[i]
+            single_learner = learner.FullEWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config)
+            single_learner.train()
+
+            self.evaluate(i)
+
+        return self.eval_matrix
+
+
 class GroupMultiLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
         super(GroupMultiLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)

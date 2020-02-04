@@ -47,11 +47,8 @@ class SquareAccumulationGradientHook(GradientHook):
     def begin(self):
         super(SquareAccumulationGradientHook, self).begin()
         self.condition = tf.equal(self.global_step % 600, 0)
-
         self.sum_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('fisher/' + self.name))
         self.sum_gradients = self.sum_gradients.assign_add(tf.math.square(self.gradients))
-        self.zero_gradients = tf.where(self.condition, tf.zeros_like(self.gradients), self.sum_gradients)
-        self.sum_gradients = tf.assign(self.sum_gradients, self.zero_gradients)
 
     def save_fisher_component(self, results):
         if results['global_step'] % 100 == 0:
@@ -68,15 +65,40 @@ class SquareAccumulationGradientHook(GradientHook):
                                         'condition': self.condition})
 
 
-class RangeSquareAccumulationGradientHook(SquareAccumulationGradientHook):
-    def __init__(self, grad_and_var, skip_rate):
-        super(RangeSquareAccumulationGradientHook, self).__init__(grad_and_var)
-        self.skip_rate = skip_rate
+class SequentialSquareAccumulationGradientHook(GradientHook):
+    def __init__(self, grad_and_var, n_task):
+        super(SequentialSquareAccumulationGradientHook, self).__init__(grad_and_var)
+        self.n_task = n_task
+        self.fisher = []
+        self.theta = []
+        self.conditions = []
 
     def begin(self):
-        self.global_step = tf.train.get_global_step()
-        self.condition = tf.greater(self.global_step, int(6000 * self.skip_rate))
-        self.sum_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('fisher/' + self.name))
+        super(SequentialSquareAccumulationGradientHook, self).begin()
 
-        self.fixed_gradients = tf.where(self.condition, self.sum_gradients, self.sum_gradients)
-        self.sum_gradients = tf.assign(self.sum_gradients, self.fixed_gradients)
+        for i in range(self.n_task):
+            self.conditions.append(tf.equal(self.global_step, 600*i))
+            self.fisher.append(tf.Variable(tf.zeros_like(self.gradients), name=('fisher' + str(i) + '/' + self.name)))
+            self.theta.append(tf.Variable(tf.zeros_like(self.gradients), name=('theta' + str(i) + '/' + self.name)))
+
+        self.sum_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('fisher/' + self.name))
+        self.sum_gradients = self.sum_gradients.assign_add(tf.math.square(self.gradients))
+
+        for i in range(self.n_task):
+            self.fisher_cond = tf.where(self.conditions[i], self.sum_gradients, self.fisher[i])
+            self.theta_cond = tf.where(self.conditions[i], self.variable, self.theta[i])
+
+            self.fisher[i] = tf.assign(self.fisher[i], self.fisher_cond)
+            self.theta[i] = tf.assign(self.theta[i], self.theta_cond)
+
+    def save_fisher_component(self, results):
+        if results['global_step'] % 600 == 0:
+            print(self.name, ': fisher', np.linalg.norm(results['sum_gradients']))
+
+    def after_run(self, run_context, run_values):
+        _ = run_context
+        self.save_fisher_component(run_values.results)
+
+    def before_run(self, run_context):
+        return tf.train.SessionRunArgs({'sum_gradients': self.sum_gradients,
+                                        'global_step': self.global_step})
