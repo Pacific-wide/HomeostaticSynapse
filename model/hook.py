@@ -10,6 +10,11 @@ class GradientHook(tf.train.SessionRunHook):
 
     def begin(self):
         self.global_step = tf.train.get_global_step()
+        self.condition = tf.equal(self.global_step % 600, 0)
+
+    def after_run(self, run_context, run_values):
+        _ = run_context
+        self.save_fisher_component(run_values.results)
 
 
 class AverageAssignGradientHook(GradientHook):
@@ -18,7 +23,6 @@ class AverageAssignGradientHook(GradientHook):
 
     def begin(self):
         super(AverageAssignGradientHook, self).begin()
-        self.condition = tf.equal(self.global_step % 600, 0)
 
         self.avg_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('avg/' + self.name))
         self.avg_gradients = self.avg_gradients.assign(self.gradients)
@@ -29,10 +33,6 @@ class AverageAssignGradientHook(GradientHook):
         if results['global_step'] % 100 == 0:
             print(self.name, ': avg', np.linalg.norm(results['avg_gradients']))
             print('step condtion: ', results['condition'])
-
-    def after_run(self, run_context, run_values):
-        _ = run_context
-        self.save_fisher_component(run_values.results)
 
     def before_run(self, run_context):
         return tf.train.SessionRunArgs({'avg_gradients': self.avg_gradients,
@@ -46,23 +46,23 @@ class SquareAccumulationGradientHook(GradientHook):
 
     def begin(self):
         super(SquareAccumulationGradientHook, self).begin()
-        self.condition = tf.equal(self.global_step % 600, 0)
+
         self.sum_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('fisher/' + self.name))
-        self.sum_gradients = self.sum_gradients.assign_add(tf.math.square(self.gradients))
+        self.sum_gradients = self.sum_gradients.assign_add(tf.math.sqrt(tf.math.sqrt(tf.math.square(self.gradients))))
+
+        self.zero_condition = tf.equal(self.global_step % 18600, 0)
+        self.zero_gradients = tf.where(self.zero_condition, tf.zeros_like(self.gradients), self.sum_gradients)
+        self.sum_gradients = tf.assign(self.sum_gradients, self.zero_gradients)
 
     def save_fisher_component(self, results):
         if results['global_step'] % 100 == 0:
             print(self.name, ': fisher', np.linalg.norm(results['sum_gradients']))
             print('step condtion: ', results['condition'])
 
-    def after_run(self, run_context, run_values):
-        _ = run_context
-        self.save_fisher_component(run_values.results)
-
     def before_run(self, run_context):
         return tf.train.SessionRunArgs({'sum_gradients': self.sum_gradients,
                                         'global_step': self.global_step,
-                                        'condition': self.condition})
+                                        'condition': self.zero_condition})
 
 
 class SequentialSquareAccumulationGradientHook(GradientHook):
@@ -77,12 +77,13 @@ class SequentialSquareAccumulationGradientHook(GradientHook):
         super(SequentialSquareAccumulationGradientHook, self).begin()
 
         for i in range(self.n_task):
-            self.conditions.append(tf.equal(self.global_step, 600*i))
+            self.conditions.append(tf.equal(self.global_step, 600 * i))
             self.fisher.append(tf.Variable(tf.zeros_like(self.gradients), name=('fisher' + str(i) + '/' + self.name)))
             self.theta.append(tf.Variable(tf.zeros_like(self.gradients), name=('theta' + str(i) + '/' + self.name)))
 
         self.sum_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('fisher/' + self.name))
         self.sum_gradients = self.sum_gradients.assign_add(tf.math.square(self.gradients))
+
 
         for i in range(self.n_task):
             self.fisher_cond = tf.where(self.conditions[i], self.sum_gradients, self.fisher[i])
@@ -94,10 +95,6 @@ class SequentialSquareAccumulationGradientHook(GradientHook):
     def save_fisher_component(self, results):
         if results['global_step'] % 600 == 0:
             print(self.name, ': fisher', np.linalg.norm(results['sum_gradients']))
-
-    def after_run(self, run_context, run_values):
-        _ = run_context
-        self.save_fisher_component(run_values.results)
 
     def before_run(self, run_context):
         return tf.train.SessionRunArgs({'sum_gradients': self.sum_gradients,

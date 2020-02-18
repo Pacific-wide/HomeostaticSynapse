@@ -1,9 +1,10 @@
-import dataset
 import tensorflow as tf
-import learner
-import spec
-import optimizer as op
 import numpy as np
+
+from dataset import dataset
+from model import learner
+from optimizer import spec
+from optimizer import optimizer as op
 
 def main(argv):
     print(argv)
@@ -14,13 +15,11 @@ def main(argv):
     n_task = 1
 
     np.random.seed(seed)
-    model_dir = "ind"
+    model_dir = "test"
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=600)
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=500)
 
-    single_dataset = dataset.RandPermMnist()
-
-    # single_dataset = dataset.SVHN()
+    single_dataset = dataset.RandPermCIFAR10()
 
     d_in = single_dataset.d_in
     my_opt = op.SGDOptimizer().build(learning_rate)

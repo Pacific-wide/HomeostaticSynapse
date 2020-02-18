@@ -1,14 +1,19 @@
-import dataset
 import tensorflow as tf
-import grouplearner
-import spec
-import optimizer as op
 import numpy as np
+
+from dataset import dataset
+from model import grouplearner
+from optimizer import optimizer as op
+from optimizer import spec
+from optimizer import metric
+
+from result import logger
+
 
 
 def main(unused_argv):
     # learning rate
-    learning_rate = 5e-3
+    learning_rate = 5e-4
     meta_learning_rate = 1e-4
 
     # learning parameter
@@ -19,14 +24,14 @@ def main(unused_argv):
     learning_specs = []
 
     # model path
-    model_dir = "meta_alpha"
+    model_dir = "meta_rota"
 
     np.random.seed(10)
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfRandPermMnist(n_task + 1)
+    set_of_datasets = dataset.SetOfRandRotaMnist(n_task + 1)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):

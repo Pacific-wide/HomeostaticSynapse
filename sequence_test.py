@@ -1,11 +1,13 @@
-import dataset
 import tensorflow as tf
-import grouplearner
-import spec
-import optimizer as op
-import metric
-import logger
 import numpy as np
+
+from dataset import dataset
+from model import grouplearner
+from optimizer import optimizer as op
+from optimizer import spec
+from optimizer import metric
+
+from result import logger
 
 
 def main(argv):
@@ -16,18 +18,19 @@ def main(argv):
     learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
-    n_task = 10
+    n_task = 5
 
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
-    model_dir = "fewc"
+    model_dir = "ewc"
     np.random.seed(seed)
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
     set_of_datasets = dataset.SetOfRandPermMnist(n_task)
-
+    # set_of_datasets = dataset.SetOfRandRotaMnist(n_task)
+    # set_of_datasets = dataset.SetOfRandPermCIFAR10(n_task)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):
@@ -35,9 +38,10 @@ def main(argv):
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec, alpha))
 
-    # my_grouplearner = grouplearner.GroupSingleLearner(set_of_datasets, learning_specs, n_task, run_config)
+    # my_grouplearner = grouplearner.GroupInDepLearner(set_of_datasets, learning_specs, n_task, run_config)
+    my_grouplearner = grouplearner.GroupSingleLearner(set_of_datasets, learning_specs, n_task, run_config)
     # my_grouplearner = grouplearner.GroupEWCLearner(set_of_datasets, learning_specs, n_task, run_config)
-    my_grouplearner = grouplearner.GroupFullEWCLearner(set_of_datasets, learning_specs, n_task, run_config)
+    # my_grouplearner = grouplearner.GroupFullEWCLearner(set_of_datasets, learning_specs, n_task, run_config)
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
 
@@ -48,8 +52,8 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    # filepath = "2r_"+model_dir+".txt"
-    filepath = "r_fewc.txt"
+    filepath = "4r_"+model_dir+".txt"
+    # filepath = "base.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs)
 
 

@@ -1,16 +1,19 @@
-import dataset
 import tensorflow as tf
-import grouplearner
-import optimizer as op
-import spec
-import metric
-import logger
 import numpy as np
+
+from dataset import dataset
+from model import grouplearner
+from optimizer import optimizer as op
+from optimizer import spec
+from optimizer import metric
+
+from result import logger
+
 
 
 def main(argv):
     print(argv)
-    learning_rate = 1e-1
+    learning_rate = 5e-3
     n_epoch = 1
     seed = int(argv[1])
     alpha = 0
@@ -26,7 +29,7 @@ def main(argv):
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=600)
 
-    set_of_datasets = dataset.SetOfRandPermMnist(n_task)
+    set_of_datasets = dataset.SetOfRandRotaMnist(n_task)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):
@@ -38,10 +41,10 @@ def main(argv):
 
     accuracy_vector = multi_task_grouplearner.train_and_evaluate()
 
-    filepath = "r_multi.txt"
+    filepath = "3r_multi.txt"
     avg_acc = accuracy_vector.sum() / (1.0 * n_task)
     metric_list = [avg_acc]
-    accuracy_vector = accuracy_vector.reshape(1,-1)
+    accuracy_vector = accuracy_vector.reshape(1, -1)
     logger.save(filepath, accuracy_vector, metric_list, seed, learning_specs)
 
 

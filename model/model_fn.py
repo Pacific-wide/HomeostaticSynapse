@@ -1,9 +1,9 @@
 import tensorflow as tf
 import abc
-import loss as ls
-import gradient_computer as gc
-import net
-import hook
+from optimizer import loss as ls
+from optimizer import gradient_computer as gc
+from model import net
+from model import hook
 import numpy as np
 
 
@@ -186,6 +186,7 @@ class MetaModelFNCreator(ModelFNCreator):
     def add_meta_loss(self, g_pre, v_cur, v_pre):
         meta_loss = 0
         for (w, f, v) in zip(v_cur, g_pre, v_pre):
+
             meta_loss = meta_loss + tf.math.square(tf.losses.mean_squared_error(w, v, f))
 
         return meta_loss
@@ -202,7 +203,7 @@ class MetaModelFNCreator(ModelFNCreator):
 
     @staticmethod
     def flat_to_layer(grads, cur_vars):
-        grads_and_vars = []
+        grads_list = []
         for var in cur_vars:
             pre_shape = tf.shape(var)
             flat_var = tf.reshape(var, [-1, 1])
@@ -211,10 +212,10 @@ class MetaModelFNCreator(ModelFNCreator):
             grad_vec = tf.reshape(grads, [-1])
             flat_grad = tf.slice(grad_vec, [begin], [size])
             grad = tf.reshape(flat_grad, pre_shape)
-            grads_and_vars.append((grad, var))
+            grads_list.append(grad)
             begin = begin + size
 
-        return grads_and_vars
+        return grads_list
 
 
 class MetaGradientModelFNCreator(MetaModelFNCreator):
@@ -234,7 +235,7 @@ class MetaGradientTestModelFNCreator(MetaGradientModelFNCreator):
         super(MetaGradientTestModelFNCreator, self).__init__(features, labels, mode, optimizer_spec)
 
         self.learning_spec = learning_spec
-        self.alpha = 100
+        self.alpha = 0.01
 
     def create(self):
         # current gradient
@@ -243,11 +244,13 @@ class MetaGradientTestModelFNCreator(MetaGradientModelFNCreator):
 
         g_cur, v_cur = zip(*grads_and_vars)
         g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher')
+        v_pre = self.load_tensors(self.learning_spec.model_dir, 'main')
 
         meta_batch = self.combine_meta_features(g_cur, g_pre, v_cur)
         meta_output = self.meta_model(meta_batch)
+        f_meta_output = self.flat_to_layer(meta_output, self.model.weights)
 
-        self.total_loss = self.loss + self.alpha * self.add_meta_loss(meta_output, self.learning_spec.model_dir)
+        self.total_loss = self.loss + self.alpha * self.add_meta_loss(f_meta_output, self.model.weights, v_pre)
         total_gradient_computer = gc.ScopeGradientComputer(self.opt, self.total_loss, self.model.weights)
         total_grads_and_vars = total_gradient_computer.compute()
 
@@ -298,7 +301,7 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
     def combine_meta_features(self, g_cur, g_pre, v_cur, v_pre):
         combine_list = (self.layer_to_flat(g_cur), self.layer_to_flat(g_pre), abs(self.layer_to_flat(v_cur)-self.layer_to_flat(v_pre)))
 
-        return tf.reshape(tf.concat(combine_list, axis=0),shape=[1, -1])
+        return tf.reshape(tf.concat(combine_list, axis=0), shape=[1, -1])
 
 
 class MetaGradientTrainModelFNCreator(MetaGradientModelFNCreator):
@@ -340,6 +343,7 @@ class MetaGradientTrainModelFNCreator(MetaGradientModelFNCreator):
         meta_label = self.make_meta_labels(g_cur, g_joint, v_cur, v_pre, self.alpha)
 
         meta_output = self.meta_model(meta_batch)
+
         meta_loss = tf.losses.mean_squared_error(meta_output, meta_label)
         tf.summary.scalar(name='losses/meta_loss', tensor=meta_loss)
 
@@ -434,7 +438,6 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
     def make_meta_labels(self, g_cur, g_joint, v_cur, v_pre, g_pre):
         flat_g_pre = self.layer_to_flat(g_pre)
         flat_g_cur = self.layer_to_flat(g_cur)
-
         flat_v_pre = self.layer_to_flat(v_pre)
         flat_v_cur = self.layer_to_flat(v_cur)
 

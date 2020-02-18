@@ -1,25 +1,31 @@
-import dataset
 import tensorflow as tf
-import grouplearner
-import optimizer as op
-import spec
 import numpy as np
 
+from dataset import dataset
+from model import grouplearner
+from optimizer import optimizer as op
+from optimizer import spec
+from optimizer import metric
+
+from result import logger
+
+
 def main(argv):
-    #n_test = argv[1]
-    learning_rate = 5e-3
+    seed = int(argv[1])
+    alpha = float(argv[2])
+    learning_rate = 5e-2
     n_epoch = 1
-    n_batch = 10
+    n_batch = 100
     n_task = 10
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
     # model path
-    model_dir = "meta_test"
-    np.random.seed(0)
+    model_dir = "meta_gra"
+    np.random.seed(seed)
 
     # config
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=60000/n_batch)
     ws0 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["meta"])
     ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["main", "meta"])
 
@@ -31,22 +37,22 @@ def main(argv):
     for i in range(n_task):
         opt = op.SGDOptimizer().build(learning_rates[i])
         opt_spec = spec.OptimizerSpec(opt, d_in)
-        learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec))
+        learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec, alpha))
 
     my_grouplearner = grouplearner.GroupGradientMetaTestLearner(set_of_datasets, learning_specs, n_task, run_config, ws0, ws1)
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
 
-    n_total = n_task * (n_task + 1) / 2.0
-    average_accuracy = accuracy_matrix.sum() / n_total
+    avg_acc = metric.AverageAccuracy(accuracy_matrix).compute()
+    tot_acc = metric.TotalAccuracy(accuracy_matrix).compute()
+    avg_forget = metric.AverageForgetting(accuracy_matrix).compute()
+    tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
-    print(accuracy_matrix)
-    print(average_accuracy)
+    metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    # filepath = "result/meta_2/" + str(n_test)
-    # f = open(filepath, 'w')
-    # f.write(str(average_accuracy))
-    # f.close()
+    filepath = "2r_" + model_dir + ".txt"
+    # filepath = "intro2.txt"
+    logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs)
 
 
 if __name__ == '__main__':

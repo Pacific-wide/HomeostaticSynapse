@@ -1,4 +1,4 @@
-import learner
+from model import learner
 import numpy as np
 
 
@@ -87,21 +87,40 @@ class GroupFullEWCLearner(GroupEWCLearner):
         return self.eval_matrix
 
 
-class GroupMultiLearner(GroupLearner):
+class GroupInDepLearner(GroupLearner):
+    def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
+        super(GroupInDepLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+
+    def train_and_evaluate(self):
+        for i in range(self.n_task):
+            dataset = self.set_of_dataset.list[i]
+            single_learner = learner.SingleEstimatorLearner(dataset, self.learning_specs[i], self.run_config)
+            single_learner.train()
+
+            self.evaluate(i)
+
+        return self.eval_matrix
+
+    def evaluate(self, i):
+        self.learning_specs[i].n_batch = 10
+        eval_learner = learner.SingleEstimatorLearner(self.set_of_dataset.list[i], self.learning_specs[i],
+                                                      self.run_config)
+        result = eval_learner.evaluate()
+        self.eval_matrix[i, i] = result['accuracy']
+
+
+class GroupMultiLearner(GroupInDepLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
         super(GroupMultiLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
-        self.accuracy_vector = np.zeros(n_task, dtype=np.float32)
 
     def train_and_evaluate(self):
         multi_learner = learner.MultiEstimatorLearner(self.set_of_dataset.concat(), self.learning_specs[0], self.run_config)
         multi_learner.train()
 
-        for i in range(0, self.n_task):
-            eval_learner = learner.SingleEstimatorLearner(self.set_of_dataset.list[i], self.learning_specs[i], self.run_config)
-            result = eval_learner.evaluate()
-            self.accuracy_vector[i] = result['accuracy']
+        for i in range(self.n_task):
+            self.evaluate(i)
 
-        return self.accuracy_vector
+        return self.eval_matrix
 
 
 class GroupMetaGradientTrainLearner(GroupLearner):
@@ -119,7 +138,7 @@ class GroupMetaGradientTrainLearner(GroupLearner):
 
         for i in range(0, self.n_task):
             dataset = self.set_of_dataset.list[i:i+2]
-            meta_learner = learner.MetaTrainEstimatorLearner(dataset, self.learning_specs[i], self.meta_learning_spec, self.run_config)
+            meta_learner = learner.MetaGradientTrainEstimatorLearner(dataset, self.learning_specs[i], self.meta_learning_spec, self.run_config)
             meta_learner.train()
 
 
@@ -149,7 +168,7 @@ class GroupGradientMetaTestLearner(GroupLearner):
 
     def base_train(self):
         base_dataset = self.set_of_dataset.list[0]
-        base_learner = learner.MetaWarmBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config, self.ws0)
+        base_learner = learner.MetaGradientWarmBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config, self.ws0)
         base_learner.train()
 
         result = base_learner.evaluate()
@@ -160,13 +179,10 @@ class GroupGradientMetaTestLearner(GroupLearner):
 
         for i in range(1, self.n_task):
             dataset = self.set_of_dataset.list[i]
-            meta_learner = learner.MetaWarmTestEstimatorLearner(dataset, self.learning_specs[i], self.run_config, self.ws1)
+            meta_learner = learner.MetaGradientWarmTestEstimatorLearner(dataset, self.learning_specs[i], self.run_config, self.ws1)
             meta_learner.train()
 
-            for j in range(i + 1):
-                eval_learner = learner.SingleEstimatorLearner(self.set_of_dataset.list[j], self.learning_specs[j], self.run_config)
-                result = eval_learner.evaluate()
-                self.eval_matrix[i, j] = result['accuracy']
+            self.evaluate(i)
 
         return self.eval_matrix
 
@@ -191,9 +207,6 @@ class GroupMetaAlphaTestLearner(GroupGradientMetaTestLearner):
             meta_learner = learner.MetaAlphaWarmTestEstimatorLearner(dataset, self.learning_specs[i], self.run_config, self.ws1)
             meta_learner.train()
 
-            for j in range(i + 1):
-                eval_learner = learner.SingleEstimatorLearner(self.set_of_dataset.list[j], self.learning_specs[j], self.run_config)
-                result = eval_learner.evaluate()
-                self.eval_matrix[i, j] = result['accuracy']
+            self.evaluate(i)
 
         return self.eval_matrix

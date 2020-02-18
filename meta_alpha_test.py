@@ -1,16 +1,21 @@
-import dataset
 import tensorflow as tf
-import grouplearner
-import optimizer as op
-import spec
 import numpy as np
 
+from dataset import dataset
+from model import grouplearner
+from optimizer import optimizer as op
+from optimizer import spec
+from optimizer import metric
+
+from result import logger
+
+
 def main(argv):
-    seed = argv[1]
-    learning_rate = 5e-2
+    seed = int(argv[1])
+    learning_rate = 5e-5
     n_epoch = 1
-    n_batch = 10
-    n_task = 5
+    n_batch = 100
+    n_task = 40
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
@@ -19,12 +24,12 @@ def main(argv):
     np.random.seed(seed)
 
     # config
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=600)
     ws0 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["meta"])
     ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["main", "meta"])
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfRandPermMnist(n_task)
+    set_of_datasets = dataset.SetOfRandRotaMnist(n_task)
     d_in = set_of_datasets.list[0].d_in
 
     # learning specs
@@ -37,20 +42,16 @@ def main(argv):
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
 
-    n_total = n_task * (n_task + 1) / 2.0
-    average_accuracy = accuracy_matrix.sum() / n_total
-    final_accuracy = accuracy_matrix[n_task - 1].sum() / n_task
+    avg_acc = metric.AverageAccuracy(accuracy_matrix).compute()
+    tot_acc = metric.TotalAccuracy(accuracy_matrix).compute()
+    avg_forget = metric.AverageForgetting(accuracy_matrix).compute()
+    tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
-    print(accuracy_matrix)
-    print(average_accuracy)
-    print(final_accuracy)
+    metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "result.txt"
-    f = open(filepath, 'w')
-    f.write("(meta_alpha, lr=" + str(learning_rate) + ") = " + str(average_accuracy))
-    f.write(str(round(average_accuracy, 4)) + "\n")
-    f.write(str(round(final_accuracy, 4)) + "\n")
-    f.close()
+    filepath = "tr_"+model_dir+".txt"
+    # filepath = "intro2.txt"
+    logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs)
 
 
 if __name__ == '__main__':

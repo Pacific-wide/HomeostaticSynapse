@@ -1,27 +1,28 @@
-import dataset
 import tensorflow as tf
-import grouplearner
-import spec
-import optimizer as op
 import numpy as np
+
+from dataset import dataset
+from model import grouplearner
+from optimizer import optimizer as op
+from optimizer import spec
 
 
 def main(unused_argv):
     # learning rate
     learning_rate = 5e-2
-    meta_learning_rate = 1e-4
+    meta_learning_rate = 5e-4
 
     # learning parameter
     n_epoch = 1
-    n_task = 20
-    n_batch = 10
+    n_task = 30
+    n_batch = 100
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
     # model path
-    model_dir = "meta"
+    model_dir = "meta_gra"
 
-    np.random.seed(10)
+    np.random.seed(20)
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
 
