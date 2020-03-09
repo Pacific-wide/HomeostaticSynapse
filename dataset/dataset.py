@@ -17,52 +17,14 @@ class DataSet(object):
         pass
 
 
-class Mnist(DataSet):
-    def __init__(self):
-        super(Mnist, self).__init__()
-        self.d_in = 28 * 28
-
-    def load(self):
-        train, test = tf.keras.datasets.mnist.load_data()
-        self.x_train, self.y_train = train
-        self.x_test, self.y_test = test
-
-    def normalize(self):
-        self.x_train = self.x_train.astype(np.float32)  # (60000, 28, 28)
-        self.x_test = self.x_test.astype(np.float32)  # (10000, 28, 28)
-        self.x_train = self.x_train.reshape(self.x_train.shape[0], -1) / 255.0  # (60000, 784)
-        self.x_test = self.x_test.reshape(self.x_test.shape[0], -1) / 255.0  # (10000, 784)
-
-        self.y_train = self.y_train.astype(np.int64)  # (60000, )
-        self.y_test = self.y_test.astype(np.int64)  # (10000, )
-
-
-class PermMnist(Mnist):
-    def __init__(self, permutation):
-        super(PermMnist, self).__init__()
-        self.permutation = permutation
-        self.permute()
-
-    def permute(self):
-        self.x_train = self.x_train[:, self.permutation]
-        self.x_test = self.x_test[:, self.permutation]
-
-
-class RandPermMnist(PermMnist):
-    def __init__(self):
-        permutation = np.random.permutation(784)
-        super(RandPermMnist, self).__init__(permutation)
-
-
-class SetOfRandPermMnist(object):
+class SetOfDataSet(object):
     def __init__(self, n_task):
         self.list = []
         self.n_task = n_task
         self.generate()
 
     def generate(self):
-        for i in range(self.n_task):
-            self.list.append(RandPermMnist())
+        pass
 
     def concat(self):
         x_train_list = []
@@ -76,6 +38,109 @@ class SetOfRandPermMnist(object):
         multi_dataset.y_train = np.concatenate(y_train_list, axis=0)
 
         return multi_dataset
+
+
+class Mnist(DataSet):
+    def __init__(self):
+        super(Mnist, self).__init__()
+        self.d_in = 28 * 28
+
+    def load(self):
+        train, test = tf.keras.datasets.mnist.load_data()
+        self.x_train, self.y_train = train
+        self.x_test, self.y_test = test
+
+    def flatten(self):
+        self.x_train = self.x_train.reshape(self.x_train.shape[0], -1)   # (60000, 784)
+        self.x_test = self.x_test.reshape(self.x_test.shape[0], -1)   # (10000, 784)
+
+    def normalize(self):
+        self.x_train = self.x_train.astype(np.float32) / 255.0   # (60000, 28, 28)
+        self.x_test = self.x_test.astype(np.float32) / 255.0   # (10000, 28, 28)
+
+        self.y_train = self.y_train.astype(np.int64)  # (60000, )
+        self.y_test = self.y_test.astype(np.int64)  # (10000, )
+
+
+class ColPermMnist(Mnist):
+    def __init__(self, permutation):
+        super(ColPermMnist, self).__init__()
+        self.permutation = permutation
+        self.permute()
+        self.flatten()
+
+    def permute(self):
+        self.x_train = self.x_train[:, :, self.permutation]
+        self.x_test = self.x_test[:, :, self.permutation]
+
+
+class RowPermMnist(Mnist):
+    def __init__(self, permutation):
+        super(RowPermMnist, self).__init__()
+        self.permutation = permutation
+        self.permute()
+        self.flatten()
+
+    def permute(self):
+        self.x_train = self.x_train[:, self.permutation, :]
+        self.x_test = self.x_test[:, self.permutation, :]
+
+
+class PermMnist(Mnist):
+    def __init__(self, permutation):
+        super(PermMnist, self).__init__()
+        self.permutation = permutation
+        self.flatten()
+        self.permute()
+
+    def permute(self):
+        self.x_train = self.x_train[:, self.permutation]
+        self.x_test = self.x_test[:, self.permutation]
+
+
+class RandPermMnist(PermMnist):
+    def __init__(self):
+        permutation = np.random.permutation(784)
+        super(RandPermMnist, self).__init__(permutation)
+
+
+class RandRowPermMnist(RowPermMnist):
+    def __init__(self):
+        permutation = np.random.permutation(28)
+        super(RandRowPermMnist, self).__init__(permutation)
+
+
+class RandColPermMnist(ColPermMnist):
+    def __init__(self):
+        permutation = np.random.permutation(28)
+        super(RandColPermMnist, self).__init__(permutation)
+
+
+class SetOfRandPermMnist(SetOfDataSet):
+    def __init__(self, n_task):
+        super(SetOfRandPermMnist, self).__init__(n_task)
+
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(RandPermMnist())
+
+
+class SetOfRandRowPermMnist(SetOfDataSet):
+    def __init__(self, n_task):
+        super(SetOfRandRowPermMnist, self).__init__(n_task)
+
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(RandRowPermMnist())
+
+
+class SetOfRandColPermMnist(SetOfDataSet):
+    def __init__(self, n_task):
+        super(SetOfRandColPermMnist, self).__init__(n_task)
+
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(RandColPermMnist())
 
 
 class RotaMnist(Mnist):
@@ -106,28 +171,24 @@ class RandRotaMnist(RotaMnist):
         super(RandRotaMnist, self).__init__(angle)
 
 
-class SetOfRandRotaMnist(object):
+class SetOfRandRotaMnist(SetOfDataSet):
     def __init__(self, n_task):
-        self.list = []
-        self.n_task = n_task
-        self.generate()
+        super(SetOfRandRotaMnist, self).__init__(n_task)
 
     def generate(self):
         for i in range(self.n_task):
             self.list.append(RandRotaMnist())
 
-    def concat(self):
-        x_train_list = []
-        y_train_list = []
+
+class SetOfGradualRotaMnist(SetOfDataSet):
+    def __init__(self, n_task, range):
+        self.range = range
+        super(SetOfGradualRotaMnist, self).__init__(n_task)
+
+    def generate(self):
         for i in range(self.n_task):
-            x_train_list.append(self.list[i].x_train)
-            y_train_list.append(self.list[i].y_train)
-
-        multi_dataset = RandRotaMnist()
-        multi_dataset.x_train = np.concatenate(x_train_list, axis=0)
-        multi_dataset.y_train = np.concatenate(y_train_list, axis=0)
-
-        return multi_dataset
+            angle = int((i + 1) * 360 * self.range / self.n_task)
+            self.list.append(RotaMnist(angle))
 
 
 class SetOfAlternativeMnist(object):

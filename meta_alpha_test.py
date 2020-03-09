@@ -12,10 +12,10 @@ from result import logger
 
 def main(argv):
     seed = int(argv[1])
-    learning_rate = 5e-5
+    learning_rate = 5e-4
     n_epoch = 1
     n_batch = 100
-    n_task = 40
+    n_task = 5
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 

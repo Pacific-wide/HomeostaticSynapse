@@ -24,10 +24,10 @@ def main(unused_argv):
 
     np.random.seed(20)
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=60000/n_batch)
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfRandPermMnist(n_task + 1)
+    set_of_datasets = dataset.SetOfGradualRotaMnist(n_task + 1, 0.5)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):

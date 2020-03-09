@@ -19,7 +19,9 @@ def main(argv):
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=500)
 
-    single_dataset = dataset.RandPermCIFAR10()
+    # single_dataset = dataset.RandColPermMnist()
+
+    single_dataset = dataset.RandRowPermMnist()
 
     d_in = single_dataset.d_in
     my_opt = op.SGDOptimizer().build(learning_rate)

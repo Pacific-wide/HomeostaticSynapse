@@ -179,7 +179,7 @@ class MetaGradientTestEstimatorLearner(EstimatorLearner):
         return model_fn_creator.create()
 
 
-class MetaAlphaWarmTestEstimatorLearner(MetaGradientTestEstimatorLearner):
+class MetaAlphaWarmTestEstimatorLearner(WarmStartEstimatorLearner):
     def __init__(self, dataset, learning_spec, run_config, ws):
         super(MetaAlphaWarmTestEstimatorLearner, self).__init__(dataset, learning_spec, run_config, ws)
 

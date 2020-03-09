@@ -13,7 +13,7 @@ from result import logger
 def main(argv):
     seed = int(argv[1])
     alpha = float(argv[2])
-    learning_rate = 5e-2
+    learning_rate = 5e-4
     n_epoch = 1
     n_batch = 100
     n_task = 10
@@ -50,7 +50,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "2r_" + model_dir + ".txt"
+    filepath = "3r_" + model_dir + ".txt"
     # filepath = "intro2.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs)
 
