@@ -43,7 +43,8 @@ class SetOfDataSet(object):
 class Mnist(DataSet):
     def __init__(self):
         super(Mnist, self).__init__()
-        self.d_in = 28 * 28
+        self.row = 28
+        self.d_in = self.row * self.row
 
     def load(self):
         train, test = tf.keras.datasets.mnist.load_data()
@@ -100,19 +101,19 @@ class PermMnist(Mnist):
 
 class RandPermMnist(PermMnist):
     def __init__(self):
-        permutation = np.random.permutation(784)
+        permutation = np.random.permutation(self.d_in)
         super(RandPermMnist, self).__init__(permutation)
 
 
 class RandRowPermMnist(RowPermMnist):
     def __init__(self):
-        permutation = np.random.permutation(28)
+        permutation = np.random.permutation(self.row)
         super(RandRowPermMnist, self).__init__(permutation)
 
 
 class RandColPermMnist(ColPermMnist):
     def __init__(self):
-        permutation = np.random.permutation(28)
+        permutation = np.random.permutation(self.row)
         super(RandColPermMnist, self).__init__(permutation)
 
 
@@ -151,7 +152,7 @@ class RotaMnist(Mnist):
         self.x_test = self.rotate(self.x_test)
 
     def rotate(self, data):
-        data = data.reshape(-1, 28, 28)
+        data = data.reshape(-1, self.row, self.row)
         shape = data.shape
         result = np.zeros(shape)
 
@@ -159,7 +160,7 @@ class RotaMnist(Mnist):
             img = Image.fromarray(data[i], mode='L')
             result[i] = img.rotate(self.angle)
 
-        result = result.reshape(-1, 28 * 28)
+        result = result.reshape(-1, self.d_in)
         result = result.astype(np.float32)
 
         return result
@@ -201,6 +202,39 @@ class SetOfAlternativeMnist(object):
         for i in range(self.n_task):
             self.list.append(RandPermMnist())
             self.list.append(RandRotaMnist())
+
+
+class BlockBoxMnist(Mnist):
+    def __init__(self, block_ratio, i_row, i_col):
+        super(BlockBoxMnist, self).__init__()
+        self.block_ratio = block_ratio
+        self.i_row = i_row
+        self.i_col = i_col
+        self.flatten()
+        self.block_box()
+
+    def block_box(self):
+        block_length = int(self.block_ratio * self.row)
+
+        self.x_train = self.x_train[:, self.i_row:self.i_row+block_length, self.i_col:self.i_col+block_length]
+        self.x_test = self.x_test[:, self.i_row:self.i_row+block_length, self.i_col:self.i_col+block_length]
+
+
+class RandBlockBoxMnist(Mnist):
+    def __init__(self, block_ratio):
+        i_row = np.random.randint(self.row)
+        i_col = np.random.randint(self.row)
+        super(RandBlockBoxMnist, self).__init__(block_ratio, i_row, i_col)
+
+
+class SetOfRandBlockBoxMnist(SetOfDataSet):
+    def __init__(self, n_task, block_ratio):
+        super(SetOfRandBlockBoxMnist, self).__init__(n_task)
+        self.block_ratio = block_ratio
+
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(RandBlockBoxMnist(self.block_ratio))
 
 
 class SVHN(DataSet):
