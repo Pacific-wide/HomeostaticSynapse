@@ -19,6 +19,7 @@ def main(argv):
     n_epoch = 1
     n_batch = 100
     n_task = 10
+    block_ratio = 0.5
 
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
@@ -28,7 +29,7 @@ def main(argv):
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
-    set_of_datasets = dataset.SetOfRandColPermMnist(n_task)
+    set_of_datasets = dataset.SetOfRandBlockBoxMnist(n_task, block_ratio)
     # set_of_datasets = dataset.SetOfRandRotaMnist(n_task)
     # set_of_datasets = dataset.SetOfRandPermCIFAR10(n_task)
     # set_of_datasets = dataset.SetOfGradualRotaMnist(n_task)
@@ -54,7 +55,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "r_col"+model_dir+".txt"
+    filepath = "r_block_"+model_dir+".txt"
     # filepath = "base.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs)
 

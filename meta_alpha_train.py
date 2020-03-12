@@ -9,23 +9,24 @@ from optimizer import spec
 
 def main(unused_argv):
     # learning rate
-    learning_rate = 5e-3
+    learning_rate = 5e-2
     meta_learning_rate = 1e-4
-
+    seed = 10
     # learning parameter
     n_epoch = 1
-    n_task = 10
-    n_batch = 100
+    n_task = 30
+    n_batch = 10
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
+    np.random.seed(seed)
     # model path
     model_dir = "meta_alpha"
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfGradualRotaMnist(n_task+1, 0.5)
+    set_of_datasets = dataset.SetOfRandRowPermMnist(n_task+1)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):

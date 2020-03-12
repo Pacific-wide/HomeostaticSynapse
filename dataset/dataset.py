@@ -107,7 +107,8 @@ class RandPermMnist(PermMnist):
 
 class RandRowPermMnist(RowPermMnist):
     def __init__(self):
-        permutation = np.random.permutation(self.row)
+        row = 28
+        permutation = np.random.permutation(row)
         super(RandRowPermMnist, self).__init__(permutation)
 
 
@@ -210,31 +211,33 @@ class BlockBoxMnist(Mnist):
         self.block_ratio = block_ratio
         self.i_row = i_row
         self.i_col = i_col
-        self.flatten()
         self.block_box()
+        self.flatten()
+        print(self.x_train.shape)
 
     def block_box(self):
         block_length = int(self.block_ratio * self.row)
 
-        self.x_train = self.x_train[:, self.i_row:self.i_row+block_length, self.i_col:self.i_col+block_length]
-        self.x_test = self.x_test[:, self.i_row:self.i_row+block_length, self.i_col:self.i_col+block_length]
+        self.x_train[:, self.i_row:self.i_row+block_length, self.i_col:self.i_col+block_length] = 0
+        self.x_test[:, self.i_row:self.i_row+block_length, self.i_col:self.i_col+block_length] = 0
 
 
-class RandBlockBoxMnist(Mnist):
+class RandBlockBoxMnist(BlockBoxMnist):
     def __init__(self, block_ratio):
-        i_row = np.random.randint(self.row)
-        i_col = np.random.randint(self.row)
+        row = 28
+        i_row = np.random.randint(row)
+        i_col = np.random.randint(row)
         super(RandBlockBoxMnist, self).__init__(block_ratio, i_row, i_col)
 
 
 class SetOfRandBlockBoxMnist(SetOfDataSet):
-    def __init__(self, n_task, block_ratio):
+    def __init__(self, n_task, ratio):
+        self.ratio = ratio
         super(SetOfRandBlockBoxMnist, self).__init__(n_task)
-        self.block_ratio = block_ratio
 
     def generate(self):
         for i in range(self.n_task):
-            self.list.append(RandBlockBoxMnist(self.block_ratio))
+            self.list.append(RandBlockBoxMnist(self.ratio))
 
 
 class SVHN(DataSet):
