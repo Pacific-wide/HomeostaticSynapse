@@ -1,26 +1,36 @@
 import tensorflow as tf
 
 
-class FCN(object):
-    def __init__(self, prefix, n_layer, n_input, n_output, n_unit):
-        super(FCN, self).__init__()
+class Network(object):
+    def __init__(self, prefix, n_layer):
+        self.layer_list = []
+        self.prefix = prefix
+        self.n_layer = n_layer
 
-        self.layer_list = self.make_layer_list(prefix, n_layer, n_input, n_output, n_unit)
-
-    def make_layer_list(self, prefix, n_layer, n_input, n_output, n_unit):
-        layers = []
-        layers.append(tf.keras.layers.InputLayer((n_input,)))
-
-        for i in range(n_layer):
-            layer_name = prefix + '/dense' + str(i + 1)
-            layers.append(tf.keras.layers.Dense(n_unit, activation='relu', name=layer_name))
-
-        layers.append(tf.keras.layers.Dense(n_output, name=prefix + '/dense' + str(n_layer + 1)))
-
-        return layers
+    def make_layer_list(self):
+        pass
 
     def build(self):
         return tf.keras.Sequential(self.layer_list)
+
+
+class FCN(object):
+    def __init__(self, prefix, n_layer, n_input, n_output, n_unit):
+        super(FCN, self).__init__(prefix, n_layer)
+
+        self.layer_list = self.make_layer_list(n_input, n_output, n_unit)
+
+    def make_layer_list(self, n_input, n_output, n_unit):
+        layers = []
+        layers.append(tf.keras.layers.InputLayer((n_input,)))
+
+        for i in range(self.n_layer):
+            layer_name = self.prefix + '/dense' + str(i + 1)
+            layers.append(tf.keras.layers.Dense(n_unit, activation='relu', name=layer_name))
+
+        layers.append(tf.keras.layers.Dense(n_output, name=self.prefix + '/dense' + str(n_layer + 1)))
+
+        return layers
 
 
 class Main(FCN):
@@ -30,12 +40,12 @@ class Main(FCN):
 
 class Meta(FCN):
     def __init__(self):
-        super(Meta, self).__init__("meta", 2, 3, 1, 50)
+        super(Meta, self).__init__("meta", 2, 3, 1, 10)
 
 
 class MetaAlpha(FCN):
     def __init__(self):
-        super(MetaAlpha, self).__init__("meta", 2, 3*42310, 1, 50)
+        super(MetaAlpha, self).__init__("meta", 2, 3*42310, 1, 300)
 
 
 class MultiFCN(FCN):
@@ -50,3 +60,28 @@ class MultiFCN(FCN):
 
     def call(self, inputs):
         return self.net(inputs)
+
+
+class BaseCNN(Network):
+    def __init__(self, prefix, n_layer, n_input, n_output, n_unit):
+        super(BaseCNN, self).__init__(prefix, n_layer)
+
+        self.layer_list = self.make_layer_list(n_input, n_output, n_unit)
+
+    def make_layer_list(self, n_layer, n_output, n_unit):
+        layers = []
+        layers.append(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)))
+
+        for i in range(n_layer):
+            layer_name = self.prefix + '/conv' + str(i + 1)
+            layers.append(layers.MaxPooling2D((2, 2), layer_name=layer_name))
+            layers.append(layers.Conv2D(64, (3, 3), activation='relu', layer_name=layer_name))
+
+        layers.append(tf.keras.layers.Dense(n_output, name=self.prefix + '/dense' + str(n_layer + 1)))
+
+        return layers
+
+    def build(self):
+        return tf.keras.Sequential(self.layer_list)
+
+
