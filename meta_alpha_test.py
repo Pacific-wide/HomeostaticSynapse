@@ -12,15 +12,15 @@ from result import logger
 
 def main(argv):
     seed = int(argv[1])
-    learning_rate = 5e-4
+    learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
-    n_task = 5
+    n_task = 10
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
     # model path
-    model_dir = "meta_alpha"
+    model_dir = "meta"
     np.random.seed(seed)
 
     # config
@@ -29,7 +29,7 @@ def main(argv):
     ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["main", "meta"])
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfRandRotaMnist(n_task)
+    set_of_datasets = dataset.SetOfRandRowPermMnist(n_task)
     d_in = set_of_datasets.list[0].d_in
 
     # learning specs
@@ -49,7 +49,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "tr_"+model_dir+".txt"
+    filepath = "mr_"+model_dir+".txt"
     # filepath = "intro2.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs)
 

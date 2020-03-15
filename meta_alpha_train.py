@@ -10,23 +10,23 @@ from optimizer import spec
 def main(unused_argv):
     # learning rate
     learning_rate = 5e-2
-    meta_learning_rate = 1e-4
-    seed = 10
+    meta_learning_rate = 3e-4
+    seed = 1
     # learning parameter
     n_epoch = 1
-    n_task = 30
+    n_task = 5
     n_batch = 10
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
     np.random.seed(seed)
     # model path
-    model_dir = "meta_alpha"
+    model_dir = "meta_col"
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfRandRowPermMnist(n_task+1)
+    set_of_datasets = dataset.SetOfRandColPermMnist(n_task+1)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):

@@ -15,20 +15,22 @@ def main(argv):
     n_task = 1
 
     np.random.seed(seed)
-    model_dir = "test"
+    model_dir = "whole"
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=500)
 
     # single_dataset = dataset.RandColPermMnist()
 
-    single_dataset = dataset.RandRowPermMnist()
+    # single_dataset = dataset.RandRowPermMnist()
+
+    single_dataset = dataset.RandPermMnist()
 
     d_in = single_dataset.d_in
     my_opt = op.SGDOptimizer().build(learning_rate)
     my_opt_spec = spec.OptimizerSpec(my_opt, d_in)
     my_learning_spec = spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, my_opt_spec)
 
-    base_learner = learner.SingleEstimatorLearner(single_dataset, my_learning_spec, run_config)
+    base_learner = learner.BaseEstimatorLearner(single_dataset, my_learning_spec, run_config)
 
     base_learner.train()
 

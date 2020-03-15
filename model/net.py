@@ -7,14 +7,14 @@ class Network(object):
         self.prefix = prefix
         self.n_layer = n_layer
 
-    def make_layer_list(self):
+    def make_layer_list(self, n_input, n_output, n_unit):
         pass
 
     def build(self):
         return tf.keras.Sequential(self.layer_list)
 
 
-class FCN(object):
+class FCN(Network):
     def __init__(self, prefix, n_layer, n_input, n_output, n_unit):
         super(FCN, self).__init__(prefix, n_layer)
 
@@ -28,7 +28,7 @@ class FCN(object):
             layer_name = self.prefix + '/dense' + str(i + 1)
             layers.append(tf.keras.layers.Dense(n_unit, activation='relu', name=layer_name))
 
-        layers.append(tf.keras.layers.Dense(n_output, name=self.prefix + '/dense' + str(n_layer + 1)))
+        layers.append(tf.keras.layers.Dense(n_output, name=self.prefix + '/dense' + str(self.n_layer + 1)))
 
         return layers
 
@@ -40,12 +40,12 @@ class Main(FCN):
 
 class Meta(FCN):
     def __init__(self):
-        super(Meta, self).__init__("meta", 2, 3, 1, 10)
+        super(Meta, self).__init__("meta", 2, 3, 1, 50)
 
 
 class MetaAlpha(FCN):
     def __init__(self):
-        super(MetaAlpha, self).__init__("meta", 2, 3*42310, 1, 300)
+        super(MetaAlpha, self).__init__("meta", 2, 3*42310, 1, 100)
 
 
 class MultiFCN(FCN):
@@ -55,7 +55,7 @@ class MultiFCN(FCN):
         self.net_list = []
         for j in range(n_layer_main):
             prefix = str(j) + "_" + prefix
-            net = self.make_layer_list(prefix, n_layer, n_input, n_output, n_unit)
+            net = self.make_layer_list(n_input, n_output, n_unit)
             self.net_list.append(net)
 
     def call(self, inputs):
@@ -70,12 +70,12 @@ class BaseCNN(Network):
 
     def make_layer_list(self, n_layer, n_output, n_unit):
         layers = []
-        layers.append(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)))
+        layers.append(tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)))
 
         for i in range(n_layer):
             layer_name = self.prefix + '/conv' + str(i + 1)
-            layers.append(layers.MaxPooling2D((2, 2), layer_name=layer_name))
-            layers.append(layers.Conv2D(64, (3, 3), activation='relu', layer_name=layer_name))
+            layers.append(tf.keras.layers.MaxPooling2D((2, 2), layer_name=layer_name))
+            layers.append(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', layer_name=layer_name))
 
         layers.append(tf.keras.layers.Dense(n_output, name=self.prefix + '/dense' + str(n_layer + 1)))
 

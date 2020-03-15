@@ -101,7 +101,8 @@ class PermMnist(Mnist):
 
 class RandPermMnist(PermMnist):
     def __init__(self):
-        permutation = np.random.permutation(self.d_in)
+        pixels = 28 * 28
+        permutation = np.random.permutation(pixels)
         super(RandPermMnist, self).__init__(permutation)
 
 
@@ -114,7 +115,8 @@ class RandRowPermMnist(RowPermMnist):
 
 class RandColPermMnist(ColPermMnist):
     def __init__(self):
-        permutation = np.random.permutation(self.row)
+        row = 28
+        permutation = np.random.permutation(row)
         super(RandColPermMnist, self).__init__(permutation)
 
 

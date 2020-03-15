@@ -411,9 +411,12 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
 
         meta_batch = self.combine_meta_features(g_cur, g_pre, v_cur, v_pre)
         meta_label = self.make_meta_labels(g_cur, g_joint, v_cur, v_pre, g_pre)
-
+        tf.summary.scalar(name='losses/meta_label', tensor=tf.reshape(meta_label, []))
         meta_output = self.meta_model(meta_batch)
+        tf.summary.scalar(name='losses/meta_output', tensor=tf.reshape(meta_output, []))
 
+        print(meta_label.shape)
+        print(meta_output.shape)
         meta_loss = tf.losses.mean_squared_error(meta_output, meta_label)
         tf.summary.scalar(name='losses/meta_loss', tensor=meta_loss)
 
