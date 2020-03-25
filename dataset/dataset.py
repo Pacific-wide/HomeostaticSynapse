@@ -17,29 +17,6 @@ class DataSet(object):
         pass
 
 
-class SetOfDataSet(object):
-    def __init__(self, n_task):
-        self.list = []
-        self.n_task = n_task
-        self.generate()
-
-    def generate(self):
-        pass
-
-    def concat(self):
-        x_train_list = []
-        y_train_list = []
-        for i in range(self.n_task):
-            x_train_list.append(self.list[i].x_train)
-            y_train_list.append(self.list[i].y_train)
-
-        multi_dataset = RandPermMnist()
-        multi_dataset.x_train = np.concatenate(x_train_list, axis=0)
-        multi_dataset.y_train = np.concatenate(y_train_list, axis=0)
-
-        return multi_dataset
-
-
 class Mnist(DataSet):
     def __init__(self):
         super(Mnist, self).__init__()
@@ -63,88 +40,132 @@ class Mnist(DataSet):
         self.y_test = self.y_test.astype(np.int64)  # (10000, )
 
 
-class ColPermMnist(Mnist):
-    def __init__(self, permutation):
-        super(ColPermMnist, self).__init__()
-        self.permutation = permutation
-        self.permute()
-        self.flatten()
-
-    def permute(self):
-        self.x_train = self.x_train[:, :, self.permutation]
-        self.x_test = self.x_test[:, :, self.permutation]
-
-
-class RowPermMnist(Mnist):
-    def __init__(self, permutation):
-        super(RowPermMnist, self).__init__()
-        self.permutation = permutation
-        self.permute()
-        self.flatten()
-
-    def permute(self):
-        self.x_train = self.x_train[:, self.permutation, :]
-        self.x_test = self.x_test[:, self.permutation, :]
-
-
 class PermMnist(Mnist):
-    def __init__(self, permutation):
+    def __init__(self, perm):
         super(PermMnist, self).__init__()
-        self.permutation = permutation
-        self.flatten()
+        self.perm = perm
         self.permute()
 
     def permute(self):
-        self.x_train = self.x_train[:, self.permutation]
-        self.x_test = self.x_test[:, self.permutation]
+        self.flatten()
+        self.x_train = self.x_train[:, self.perm]
+        self.x_test = self.x_test[:, self.perm]
+
+
+class RowPermMnist(PermMnist):
+    def __init__(self, perm):
+        super(RowPermMnist, self).__init__(perm)
+
+    def permute(self):
+        self.x_train = self.x_train[:, self.perm, :]
+        self.x_test = self.x_test[:, self.perm, :]
+
+        self.flatten()
+
+
+class ColPermMnist(PermMnist):
+    def __init__(self, perm):
+        super(ColPermMnist, self).__init__(perm)
+
+    def permute(self):
+        self.x_train = self.x_train[:, :, self.perm]
+        self.x_test = self.x_test[:, :, self.perm]
+
+        self.flatten()
+
+
+class WholePermMnist(PermMnist):
+    def __init__(self, row_perm, col_perm):
+        super(WholePermMnist, self).__init__(0)
+        self.row_perm = row_perm
+        self.col_perm = col_perm
+
+    def permute(self):
+        self.x_train = self.x_train[:, self.row_perm, :]
+        self.x_test = self.x_test[:, self.row_perm, :]
+
+        self.x_train = self.x_train[:, :, self.col_perm]
+        self.x_test = self.x_test[:, :, self.col_perm]
+
+        self.flatten()
+
+
+class GridPermMnist(PermMnist):
+    def __init__(self, perm, n_grid):
+        self.n_grid = n_grid
+        super(GridPermMnist, self).__init__(perm)
+
+        self.row = 28
+        self.col = 28
+        self.grid_shape = [int(self.row/self.n_grid), int(self.col/self.n_grid)]
+
+    def permute(self):
+        for i, sample in enumerate(self.x_train):
+            blocks = self.make_blocks(sample)
+            perm_sample = self.permute_blocks(self.perm, blocks)
+
+            self.x_train[i] = perm_sample
+
+        self.flatten()
+
+    def make_blocks(self, sample):
+        x = sample
+        blocks = []
+        for i in range(self.grid_shape[0]):
+            for j in range(self.grid_shape[1]):
+                n = self.n_grid
+                sub_x = x[n*i:n*(i+1), n*j:n*(j+1)]
+                blocks.append(sub_x)
+
+        return blocks
+
+    def permute_blocks(self, perm, blocks):
+        perm_x = np.zeros((self.row, self.col), dtype=int)
+        for index, order in enumerate(perm):
+            i = int(order / self.grid_shape[1])
+            j = order % self.grid_shape[1]
+            n = self.n_grid
+
+            perm_x[n*i:n*(i+1), n*j:n*(j+1)] = blocks[index]
+
+        return perm_x
 
 
 class RandPermMnist(PermMnist):
     def __init__(self):
         pixels = 28 * 28
-        permutation = np.random.permutation(pixels)
-        super(RandPermMnist, self).__init__(permutation)
+        perm = np.random.permutation(pixels)
+        super(RandPermMnist, self).__init__(perm)
 
 
 class RandRowPermMnist(RowPermMnist):
     def __init__(self):
         row = 28
-        permutation = np.random.permutation(row)
-        super(RandRowPermMnist, self).__init__(permutation)
+        perm = np.random.permutation(row)
+        super(RandRowPermMnist, self).__init__(perm)
 
 
 class RandColPermMnist(ColPermMnist):
     def __init__(self):
         row = 28
-        permutation = np.random.permutation(row)
-        super(RandColPermMnist, self).__init__(permutation)
+        perm = np.random.permutation(row)
+        super(RandColPermMnist, self).__init__(perm)
 
 
-class SetOfRandPermMnist(SetOfDataSet):
-    def __init__(self, n_task):
-        super(SetOfRandPermMnist, self).__init__(n_task)
-
-    def generate(self):
-        for i in range(self.n_task):
-            self.list.append(RandPermMnist())
-
-
-class SetOfRandRowPermMnist(SetOfDataSet):
-    def __init__(self, n_task):
-        super(SetOfRandRowPermMnist, self).__init__(n_task)
-
-    def generate(self):
-        for i in range(self.n_task):
-            self.list.append(RandRowPermMnist())
+class RandWholePermMnist(WholePermMnist):
+    def __init__(self):
+        row = 28
+        self.row_perm = np.random.permutation(row)
+        self.col_perm = np.random.permutation(row)
+        super(RandWholePermMnist, self).__init__(self.row_perm, self.col_perm)
 
 
-class SetOfRandColPermMnist(SetOfDataSet):
-    def __init__(self, n_task):
-        super(SetOfRandColPermMnist, self).__init__(n_task)
-
-    def generate(self):
-        for i in range(self.n_task):
-            self.list.append(RandColPermMnist())
+class BlcokPermMnist(PermMnist):
+    def __init__(self, perm, grid):
+        super(BlcokPermMnist, self).__init__(perm)
+        self.grid = grid
+        self.permute()
+        self.flatten()
 
 
 class RotaMnist(Mnist):
@@ -172,39 +193,8 @@ class RotaMnist(Mnist):
 class RandRotaMnist(RotaMnist):
     def __init__(self):
         angle = np.random.randint(360)
+        print("Task " + ":" + str(angle))
         super(RandRotaMnist, self).__init__(angle)
-
-
-class SetOfRandRotaMnist(SetOfDataSet):
-    def __init__(self, n_task):
-        super(SetOfRandRotaMnist, self).__init__(n_task)
-
-    def generate(self):
-        for i in range(self.n_task):
-            self.list.append(RandRotaMnist())
-
-
-class SetOfGradualRotaMnist(SetOfDataSet):
-    def __init__(self, n_task, range):
-        self.range = range
-        super(SetOfGradualRotaMnist, self).__init__(n_task)
-
-    def generate(self):
-        for i in range(self.n_task):
-            angle = int((i + 1) * 360 * self.range / self.n_task)
-            self.list.append(RotaMnist(angle))
-
-
-class SetOfAlternativeMnist(object):
-    def __init__(self, n_task):
-        self.list = []
-        self.n_task = int(n_task/2)
-        self.generate()
-
-    def generate(self):
-        for i in range(self.n_task):
-            self.list.append(RandPermMnist())
-            self.list.append(RandRotaMnist())
 
 
 class BlockBoxMnist(Mnist):
@@ -230,16 +220,6 @@ class RandBlockBoxMnist(BlockBoxMnist):
         i_row = np.random.randint(row)
         i_col = np.random.randint(row)
         super(RandBlockBoxMnist, self).__init__(block_ratio, i_row, i_col)
-
-
-class SetOfRandBlockBoxMnist(SetOfDataSet):
-    def __init__(self, n_task, ratio):
-        self.ratio = ratio
-        super(SetOfRandBlockBoxMnist, self).__init__(n_task)
-
-    def generate(self):
-        for i in range(self.n_task):
-            self.list.append(RandBlockBoxMnist(self.ratio))
 
 
 class SVHN(DataSet):

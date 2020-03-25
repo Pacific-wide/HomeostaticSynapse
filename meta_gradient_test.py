@@ -21,7 +21,7 @@ def main(argv):
     learning_specs = []
 
     # model path
-    model_dir = "meta_gra"
+    model_dir = "meta_whole"
     np.random.seed(seed)
 
     # config

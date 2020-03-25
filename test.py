@@ -17,13 +17,15 @@ def main(argv):
     np.random.seed(seed)
     model_dir = "whole"
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=500)
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=100)
 
     # single_dataset = dataset.RandColPermMnist()
 
     # single_dataset = dataset.RandRowPermMnist()
 
-    single_dataset = dataset.RandPermMnist()
+    # single_dataset = dataset.RandPermMnist()
+
+    single_dataset = dataset.RandWholePermMnist()
 
     d_in = single_dataset.d_in
     my_opt = op.SGDOptimizer().build(learning_rate)

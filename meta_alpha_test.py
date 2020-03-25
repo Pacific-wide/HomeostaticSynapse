@@ -15,7 +15,7 @@ def main(argv):
     learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
-    n_task = 10
+    n_task = 5
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
@@ -24,12 +24,12 @@ def main(argv):
     np.random.seed(seed)
 
     # config
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=600)
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=60000/n_batch)
     ws0 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["meta"])
     ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["main", "meta"])
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfRandRowPermMnist(n_task)
+    set_of_datasets = dataset.SetOfRandPermMnist(n_task)
     d_in = set_of_datasets.list[0].d_in
 
     # learning specs
@@ -49,8 +49,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "mr_"+model_dir+".txt"
-    # filepath = "intro2.txt"
+    filepath = "meta.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs)
 
 

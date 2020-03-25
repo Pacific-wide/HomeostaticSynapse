@@ -285,7 +285,10 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
         meta_batch = self.combine_meta_features(g_cur, g_pre, v_cur, v_pre)
         meta_output = self.meta_model(meta_batch)
 
+        tf.summary.scalar(name='losses/meta_output', tensor=tf.reshape(meta_output, shape=[]))
+
         self.total_loss = self.loss + meta_output * self.add_meta_loss(g_pre, self.model.weights, v_pre)
+        tf.summary.scalar(name='losses/total_loss', tensor=tf.reshape(self.total_loss, shape=[]))
 
         total_gradient_computer = gc.ScopeGradientComputer(self.opt, self.total_loss, self.model.weights)
         total_grads_and_vars = total_gradient_computer.compute()
