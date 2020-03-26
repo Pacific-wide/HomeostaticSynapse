@@ -93,18 +93,22 @@ class WholePermMnist(PermMnist):
 class GridPermMnist(PermMnist):
     def __init__(self, perm, n_grid):
         self.n_grid = n_grid
-        super(GridPermMnist, self).__init__(perm)
-
         self.row = 28
         self.col = 28
-        self.grid_shape = [int(self.row/self.n_grid), int(self.col/self.n_grid)]
+        self.grid_shape = (int(self.row / self.n_grid), int(self.col / self.n_grid))
+
+        super(GridPermMnist, self).__init__(perm)
 
     def permute(self):
-        for i, sample in enumerate(self.x_train):
-            blocks = self.make_blocks(sample)
-            perm_sample = self.permute_blocks(self.perm, blocks)
+        for i, (train_sample, test_sample) in enumerate(zip(self.x_train, self.x_test)):
+            tr_blocks = self.make_blocks(train_sample)
+            te_blocks = self.make_blocks(train_sample)
 
-            self.x_train[i] = perm_sample
+            tr_perm_sample = self.permute_blocks(self.perm, tr_blocks)
+            te_perm_sample = self.permute_blocks(self.perm, te_blocks)
+
+            self.x_train[i] = tr_perm_sample
+            self.x_test[i] = te_perm_sample
 
         self.flatten()
 
@@ -124,9 +128,9 @@ class GridPermMnist(PermMnist):
         for index, order in enumerate(perm):
             i = int(order / self.grid_shape[1])
             j = order % self.grid_shape[1]
-            n = self.n_grid
+            l = int(self.row / self.grid_shape[0])
 
-            perm_x[n*i:n*(i+1), n*j:n*(j+1)] = blocks[index]
+            perm_x[l*i:l*(i+1), l*j:l*(j+1)] = blocks[index]
 
         return perm_x
 
@@ -160,12 +164,11 @@ class RandWholePermMnist(WholePermMnist):
         super(RandWholePermMnist, self).__init__(self.row_perm, self.col_perm)
 
 
-class BlcokPermMnist(PermMnist):
-    def __init__(self, perm, grid):
-        super(BlcokPermMnist, self).__init__(perm)
-        self.grid = grid
-        self.permute()
-        self.flatten()
+class RandGridPermMnist(GridPermMnist):
+    def __init__(self, n_grid):
+        self.n_grid_pixels = n_grid * n_grid
+        perm = np.random.permutation(self.n_grid_pixels)
+        super(RandGridPermMnist, self).__init__(perm, n_grid)
 
 
 class RotaMnist(Mnist):
