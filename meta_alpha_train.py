@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from dataset import dataset
+from dataset import set_of_dataset as sod
 from model import grouplearner
 from optimizer import optimizer as op
 from optimizer import spec
@@ -11,13 +11,14 @@ def main(unused_argv):
     # learning rate
     learning_rate = 5e-2
     meta_learning_rate = 5e-4
-    seed = 1
+    seed = 10
     # learning parameter
     n_epoch = 1
     n_task = 5
     n_batch = 10
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
+    n_grid = 7
 
     np.random.seed(seed)
     # model path
@@ -26,7 +27,7 @@ def main(unused_argv):
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfRandRowPermMnist(n_task+1)
+    set_of_datasets = sod.SetOfRandGridPermMnist(n_task+1, n_grid)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):

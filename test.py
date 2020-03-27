@@ -9,7 +9,7 @@ from optimizer import optimizer as op
 def main(argv):
     print(argv)
     seed = int(argv[1])
-    learning_rate = 1e-1
+    learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
     n_task = 1
@@ -25,7 +25,8 @@ def main(argv):
 
     # single_dataset = dataset.RandPermMnist()
 
-    single_dataset = dataset.RandGridPermMnist(4)
+    n_grid = 7
+    single_dataset = dataset.RandGridPermMnist(n_grid)
 
     d_in = single_dataset.d_in
     my_opt = op.SGDOptimizer().build(learning_rate)

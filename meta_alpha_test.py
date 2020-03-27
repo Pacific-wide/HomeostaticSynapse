@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from dataset import dataset
+from dataset import set_of_dataset as sod
 from model import grouplearner
 from optimizer import optimizer as op
 from optimizer import spec
@@ -29,7 +29,7 @@ def main(argv):
     ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["main", "meta"])
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfRandPermMnist(n_task)
+    set_of_datasets = sod.SetOfRandPermMnist(n_task)
     d_in = set_of_datasets.list[0].d_in
 
     # learning specs

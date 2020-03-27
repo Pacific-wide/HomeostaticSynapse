@@ -61,6 +61,16 @@ class SetOfRandWholePermMnist(SetOfDataSet):
             self.list.append(ds.RandWholePermMnist())
 
 
+class SetOfRandGridPermMnist(SetOfDataSet):
+    def __init__(self, n_task, n_grid):
+        self.n_grid = n_grid
+        super(SetOfRandGridPermMnist, self).__init__(n_task)
+
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(ds.RandGridPermMnist(self.n_grid))
+
+
 class SetOfRandRotaMnist(SetOfDataSet):
     def __init__(self, n_task):
         super(SetOfRandRotaMnist, self).__init__(n_task)

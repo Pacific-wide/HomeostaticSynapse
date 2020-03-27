@@ -7,8 +7,8 @@ from PIL import Image
 class DataSet(object):
     def __init__(self):
         self.load()
-        self.normalize()
         self.d_in = 0
+        self.normalize()
 
     def load(self):
         pass
@@ -52,6 +52,13 @@ class PermMnist(Mnist):
         self.x_test = self.x_test[:, self.perm]
 
 
+class RandPermMnist(PermMnist):
+    def __init__(self):
+        pixels = 28 * 28
+        perm = np.random.permutation(pixels)
+        super(RandPermMnist, self).__init__(perm)
+
+
 class RowPermMnist(PermMnist):
     def __init__(self, perm):
         super(RowPermMnist, self).__init__(perm)
@@ -63,6 +70,13 @@ class RowPermMnist(PermMnist):
         self.flatten()
 
 
+class RandRowPermMnist(RowPermMnist):
+    def __init__(self):
+        row = 28
+        perm = np.random.permutation(row)
+        super(RandRowPermMnist, self).__init__(perm)
+
+
 class ColPermMnist(PermMnist):
     def __init__(self, perm):
         super(ColPermMnist, self).__init__(perm)
@@ -72,6 +86,13 @@ class ColPermMnist(PermMnist):
         self.x_test = self.x_test[:, :, self.perm]
 
         self.flatten()
+
+
+class RandColPermMnist(ColPermMnist):
+    def __init__(self):
+        row = 28
+        perm = np.random.permutation(row)
+        super(RandColPermMnist, self).__init__(perm)
 
 
 class WholePermMnist(PermMnist):
@@ -90,72 +111,6 @@ class WholePermMnist(PermMnist):
         self.flatten()
 
 
-class GridPermMnist(PermMnist):
-    def __init__(self, perm, n_grid):
-        self.n_grid = n_grid
-        self.row = 28
-        self.col = 28
-        self.grid_shape = (int(self.row / self.n_grid), int(self.col / self.n_grid))
-
-        super(GridPermMnist, self).__init__(perm)
-
-    def permute(self):
-        for i, (train_sample, test_sample) in enumerate(zip(self.x_train, self.x_test)):
-            tr_blocks = self.make_blocks(train_sample)
-            te_blocks = self.make_blocks(train_sample)
-
-            tr_perm_sample = self.permute_blocks(self.perm, tr_blocks)
-            te_perm_sample = self.permute_blocks(self.perm, te_blocks)
-
-            self.x_train[i] = tr_perm_sample
-            self.x_test[i] = te_perm_sample
-
-        self.flatten()
-
-    def make_blocks(self, sample):
-        x = sample
-        blocks = []
-        for i in range(self.grid_shape[0]):
-            for j in range(self.grid_shape[1]):
-                n = self.n_grid
-                sub_x = x[n*i:n*(i+1), n*j:n*(j+1)]
-                blocks.append(sub_x)
-
-        return blocks
-
-    def permute_blocks(self, perm, blocks):
-        perm_x = np.zeros((self.row, self.col), dtype=int)
-        for index, order in enumerate(perm):
-            i = int(order / self.grid_shape[1])
-            j = order % self.grid_shape[1]
-            l = int(self.row / self.grid_shape[0])
-
-            perm_x[l*i:l*(i+1), l*j:l*(j+1)] = blocks[index]
-
-        return perm_x
-
-
-class RandPermMnist(PermMnist):
-    def __init__(self):
-        pixels = 28 * 28
-        perm = np.random.permutation(pixels)
-        super(RandPermMnist, self).__init__(perm)
-
-
-class RandRowPermMnist(RowPermMnist):
-    def __init__(self):
-        row = 28
-        perm = np.random.permutation(row)
-        super(RandRowPermMnist, self).__init__(perm)
-
-
-class RandColPermMnist(ColPermMnist):
-    def __init__(self):
-        row = 28
-        perm = np.random.permutation(row)
-        super(RandColPermMnist, self).__init__(perm)
-
-
 class RandWholePermMnist(WholePermMnist):
     def __init__(self):
         row = 28
@@ -164,10 +119,57 @@ class RandWholePermMnist(WholePermMnist):
         super(RandWholePermMnist, self).__init__(self.row_perm, self.col_perm)
 
 
+class GridPermMnist(PermMnist):
+    def __init__(self, perm, n_grid):
+        self.n_grid = n_grid
+        self.row = 28
+        self.col = 28
+        self.n_block = int(self.row / self.n_grid)
+
+        super(GridPermMnist, self).__init__(perm)
+
+    def permute(self):
+        for i, train_sample in enumerate(self.x_train):
+            tr_blocks = self.make_blocks(train_sample)
+            tr_perm_sample = self.permute_blocks(self.perm, tr_blocks)
+
+            self.x_train[i] = tr_perm_sample
+
+        for i, test_sample in enumerate(self.x_test):
+            te_blocks = self.make_blocks(test_sample)
+            te_perm_sample = self.permute_blocks(self.perm, te_blocks)
+
+            self.x_test[i] = te_perm_sample
+
+        self.flatten()
+
+    def make_blocks(self, sample):
+        x = sample
+        blocks = []
+        for i in range(self.n_grid):
+            for j in range(self.n_grid):
+                n = self.n_block
+                sub_x = x[n*i:n*(i+1), n*j:n*(j+1)]
+                blocks.append(sub_x)
+
+        return blocks
+
+    def permute_blocks(self, perm, blocks):
+        perm_x = np.zeros((self.row, self.col), dtype=float)
+        for index, order in enumerate(perm):
+            i = int(order / self.n_grid)
+            j = order % self.n_grid
+            n = self.n_block
+
+            perm_x[n*i:n*(i+1), n*j:n*(j+1)] = blocks[index]
+
+        return perm_x
+
+
 class RandGridPermMnist(GridPermMnist):
     def __init__(self, n_grid):
-        self.n_grid_pixels = n_grid * n_grid
-        perm = np.random.permutation(self.n_grid_pixels)
+        self.grid_pixels = n_grid * n_grid
+        perm = np.random.permutation(self.grid_pixels)
         super(RandGridPermMnist, self).__init__(perm, n_grid)
 
 
