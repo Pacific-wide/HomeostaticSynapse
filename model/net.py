@@ -48,6 +48,11 @@ class MetaAlpha(FCN):
         super(MetaAlpha, self).__init__("meta", 2, 3*42310, 1, 100)
 
 
+class SeparateMain(FCN):
+    def __init__(self, d_in):
+        super(SeparateMain, self).__init__("main", 2, d_in, 20, 50)
+
+
 class MultiFCN(FCN):
     def __init__(self, prefix, n_layer, n_input, n_output, n_unit, n_layer_main):
         super(MultiFCN, self).__init__(prefix, n_layer, n_input, n_output, n_unit)
@@ -57,9 +62,6 @@ class MultiFCN(FCN):
             prefix = str(j) + "_" + prefix
             net = self.make_layer_list(n_input, n_output, n_unit)
             self.net_list.append(net)
-
-    def call(self, inputs):
-        return self.net(inputs)
 
 
 class BaseCNN(Network):

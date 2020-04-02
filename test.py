@@ -11,13 +11,13 @@ def main(argv):
     seed = int(argv[1])
     learning_rate = 5e-2
     n_epoch = 1
-    n_batch = 100
+    n_batch = 10
     n_task = 1
 
     np.random.seed(seed)
     model_dir = "single"
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=100)
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
 
     # single_dataset = dataset.RandColPermMnist()
 

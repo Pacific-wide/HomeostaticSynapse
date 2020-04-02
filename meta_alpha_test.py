@@ -18,6 +18,7 @@ def main(argv):
     n_task = 5
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
+    n_grid = 7
 
     # model path
     model_dir = "meta"
@@ -29,7 +30,7 @@ def main(argv):
     ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["main", "meta"])
 
     # generate sequence dataset
-    set_of_datasets = sod.SetOfRandPermMnist(n_task)
+    set_of_datasets = sod.SetOfRandGridPermMnist(n_task, n_grid)
     d_in = set_of_datasets.list[0].d_in
 
     # learning specs
@@ -49,7 +50,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "meta.txt"
+    filepath = "meta7.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs)
 
 

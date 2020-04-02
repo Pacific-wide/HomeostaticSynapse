@@ -50,7 +50,7 @@ class SquareAccumulationGradientHook(GradientHook):
         self.sum_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('fisher/' + self.name))
         self.sum_gradients = self.sum_gradients.assign_add((tf.math.square(self.gradients)))
 
-        self.zero_condition = tf.equal(self.global_step % 36000, 0)
+        self.zero_condition = tf.equal(self.global_step % 600000, 0)
         self.zero_gradients = tf.where(self.zero_condition, tf.zeros_like(self.gradients), self.sum_gradients)
         self.sum_gradients = tf.assign(self.sum_gradients, self.zero_gradients)
 

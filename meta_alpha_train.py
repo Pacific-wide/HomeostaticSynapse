@@ -14,17 +14,17 @@ def main(unused_argv):
     seed = 10
     # learning parameter
     n_epoch = 1
-    n_task = 5
-    n_batch = 10
+    n_task = 30
+    n_batch = 100
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
     n_grid = 7
 
     np.random.seed(seed)
     # model path
-    model_dir = "meta_row"
+    model_dir = "meta_7"
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
     # generate sequence dataset
     set_of_datasets = sod.SetOfRandGridPermMnist(n_task+1, n_grid)

@@ -40,16 +40,45 @@ class Mnist(DataSet):
         self.y_test = self.y_test.astype(np.int64)  # (10000, )
 
 
+class SwapMnist(Mnist):
+    def __init__(self, perm):
+        super(SwapMnist, self).__init__()
+        self.perm = perm
+        self.in_perm = self.perm
+        self.out_perm = np.flip(self.perm)
+
+        self.flatten()
+        self.swap_pixel()
+
+    def swap_pixel(self):
+        for (i, o) in zip(self.in_perm, self.out_perm):
+            temp_pixel = self.x_train[:, i]
+            self.x_train[:, i] = self.x_train[:, o]
+            self.x_train[:, o] = temp_pixel
+
+            temp_pixel = self.x_test[:, i]
+            self.x_test[:, i] = self.x_test[:, o]
+            self.x_test[:, o] = temp_pixel
+
+
 class PermMnist(Mnist):
     def __init__(self, perm):
         super(PermMnist, self).__init__()
         self.perm = perm
         self.permute()
+        self.label_perm = np.random.permutation(10)
 
     def permute(self):
         self.flatten()
         self.x_train = self.x_train[:, self.perm]
         self.x_test = self.x_test[:, self.perm]
+
+    def permute_label(self):
+        for i, label in enumerate(self.y_train):
+            self.y_train[i] = self.label_perm[label]
+
+        for j, label in enumerate(self.y_test):
+            self.y_test[j] = self.label_perm[label]
 
 
 class RandPermMnist(PermMnist):
