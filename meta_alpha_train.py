@@ -10,19 +10,19 @@ from optimizer import spec
 def main(unused_argv):
     # learning rate
     learning_rate = 5e-2
-    meta_learning_rate = 5e-4
+    meta_learning_rate = 5e-5
     seed = 10
     # learning parameter
     n_epoch = 1
-    n_task = 30
-    n_batch = 100
+    n_task = 10
+    n_batch = 10
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
-    n_grid = 7
+    n_grid = 4
 
     np.random.seed(seed)
     # model path
-    model_dir = "meta_7"
+    model_dir = "meta" + str(n_grid)
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
