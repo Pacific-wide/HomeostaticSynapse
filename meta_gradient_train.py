@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from dataset import dataset
+from dataset import set_of_dataset as sod
 from model import grouplearner
 from optimizer import optimizer as op
 from optimizer import spec
@@ -14,7 +14,7 @@ def main(unused_argv):
 
     # learning parameter
     n_epoch = 1
-    n_task = 30
+    n_task = 3
     n_batch = 100
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
@@ -27,7 +27,7 @@ def main(unused_argv):
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=60000/n_batch)
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfGradualRotaMnist(n_task + 1, 0.5)
+    set_of_datasets = sod.SetOfRandPermMnist(n_task + 1)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):

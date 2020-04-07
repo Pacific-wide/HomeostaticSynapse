@@ -15,7 +15,7 @@ def main(argv):
     seed = int(argv[1])
     # alpha = float(argv[2])
     n_grid = 7
-    alpha = 1.0
+    alpha = 0.1
     learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
@@ -29,10 +29,6 @@ def main(argv):
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
-    # set_of_datasets = sod.SetOfRandPermMnist(n_task)
-    # set_of_datasets = sod.SetOfRandRowPermMnist(n_task)
-    # set_of_datasets = sod.SetOfRandColPermMnist(n_task)
-
     set_of_datasets = sod.SetOfRandGridPermMnist(n_task, n_grid)
 
     d_in = set_of_datasets.list[0].d_in
@@ -42,10 +38,8 @@ def main(argv):
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec, alpha))
 
-    # my_grouplearner = grouplearner.GroupInDepLearner(set_of_datasets, learning_specs, n_task, run_config)
     # my_grouplearner = grouplearner.GroupSingleLearner(set_of_datasets, learning_specs, n_task, run_config)
     my_grouplearner = grouplearner.GroupEWCLearner(set_of_datasets, learning_specs, n_task, run_config)
-    # my_grouplearner = grouplearner.GroupFullEWCLearner(set_of_datasets, learning_specs, n_task, run_config)
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
 
@@ -55,7 +49,7 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = "ewc.txt"
+    filepath = model_dir + ".txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, n_grid)
 
 

@@ -18,7 +18,7 @@ def main(unused_argv):
     n_batch = 10
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
-    n_grid = 4
+    n_grid = 7
 
     np.random.seed(seed)
     # model path
@@ -27,7 +27,7 @@ def main(unused_argv):
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
     # generate sequence dataset
-    set_of_datasets = sod.SetOfRandGridPermMnist(n_task+1, n_grid)
+    set_of_datasets = sod.SetOfSwapGrid(n_task+1, n_grid, step=4)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):

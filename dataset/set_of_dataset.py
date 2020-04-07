@@ -41,8 +41,9 @@ class SetOfCurriculumGrid(SetOfDataSet):
 
 
 class SetOfSwapGrid(SetOfDataSet):
-    def __init__(self, n_task, n_grid):
+    def __init__(self, n_task, n_grid, step):
         self.n_grid = n_grid
+        self.step = step
         self.grid_blocks = self.n_grid * self.n_grid
         self.grid_perm = np.arange(self.grid_blocks)
         self.pixel_perm = np.random.permutation(self.grid_blocks)
@@ -52,7 +53,9 @@ class SetOfSwapGrid(SetOfDataSet):
     def generate(self):
         for index in range(self.n_task):
             self.list.append(ds.GridPermMnist(self.grid_perm, self.n_grid))
-            self.swap_perm(index)
+            for j in range(self.step):
+                self.swap_perm(index*(j+1))
+            print(self.grid_perm)
 
     def swap_perm(self, index):
         input_index = index % self.grid_blocks
