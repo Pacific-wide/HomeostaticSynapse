@@ -7,11 +7,12 @@ from optimizer import optimizer as op
 from optimizer import spec
 
 
-def main(unused_argv):
+def main(argv):
     # learning rate
     learning_rate = 5e-2
     meta_learning_rate = 5e-5
-    seed = 10
+    seed = int(argv[1])
+    step = int(argv[2])
     # learning parameter
     n_epoch = 1
     n_task = 10
@@ -27,7 +28,7 @@ def main(unused_argv):
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
     # generate sequence dataset
-    set_of_datasets = sod.SetOfSwapGrid(n_task+1, n_grid, step=4)
+    set_of_datasets = sod.SetOfSwapGrid(n_task+1, n_grid, step=step)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):

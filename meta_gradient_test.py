@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from dataset import dataset
+from dataset import set_of_dataset as sod
 from model import grouplearner
 from optimizer import optimizer as op
 from optimizer import spec
@@ -13,10 +13,11 @@ from result import logger
 def main(argv):
     seed = int(argv[1])
     alpha = float(argv[2])
-    learning_rate = 5e-4
+    learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
     n_task = 10
+    n_grid = 7
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
@@ -30,7 +31,7 @@ def main(argv):
     ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["main", "meta"])
 
     # generate sequence dataset
-    set_of_datasets = dataset.SetOfRandPermMnist(n_task)
+    set_of_datasets = sod.SetOfRandGridPermMnist(n_task, n_grid)
     d_in = set_of_datasets.list[0].d_in
 
     # learning specs
@@ -50,9 +51,8 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "3r_" + model_dir + ".txt"
-    # filepath = "intro2.txt"
-    logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs)
+    filepath = model_dir + ".txt"
+    logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, n_grid)
 
 
 if __name__ == '__main__':

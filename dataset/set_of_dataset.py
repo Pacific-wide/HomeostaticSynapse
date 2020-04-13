@@ -45,7 +45,8 @@ class SetOfSwapGrid(SetOfDataSet):
         self.n_grid = n_grid
         self.step = step
         self.grid_blocks = self.n_grid * self.n_grid
-        self.grid_perm = np.arange(self.grid_blocks)
+        # self.grid_perm = np.arange(self.grid_blocks)
+        self.grid_perm = np.random.permutation(self.grid_blocks)
         self.pixel_perm = np.random.permutation(self.grid_blocks)
 
         super(SetOfSwapGrid, self).__init__(n_task)

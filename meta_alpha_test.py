@@ -50,7 +50,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "meta.txt"
+    filepath = "meta_step10.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, n_grid)
 
 
