@@ -79,6 +79,30 @@ class SetOfMnistPlusGrid(SetOfDataSet):
             self.list.append(ds.RandGridPermMnist(self.n_grid))
 
 
+class SetOfMnistPlusGridCIFAR10(SetOfDataSet):
+    def __init__(self, n_task, n_grid):
+        self.n_grid = n_grid
+        super(SetOfMnistPlusGridCIFAR10, self).__init__(n_task)
+
+    def generate(self):
+        self.list.append(ds.CIFAR10())
+        self.list[0].flatten()
+        for i in range(1, self.n_task):
+            self.list.append(ds.RandGridPermCIFAR10(self.n_grid))
+
+
+class SetOfMnistPlusRota(SetOfDataSet):
+    def __init__(self, n_task, angle):
+        self.angle = angle
+        super(SetOfMnistPlusRota, self).__init__(n_task)
+
+    def generate(self):
+        self.list.append(ds.Mnist())
+        self.list[0].flatten()
+        for i in range(1, self.n_task):
+            self.list.append(ds.RotaMnist(self.angle))
+
+
 class SetOfMnistPlusSwap(SetOfDataSet):
     def __init__(self, n_task, n_swap_epoch):
         n_pixel = 784
@@ -161,6 +185,18 @@ class SetOfGradualRotaMnist(SetOfDataSet):
             self.list.append(ds.RotaMnist(angle))
 
 
+class SetOfGradualSplitMnist(SetOfDataSet):
+    def __init__(self, n_task):
+        self.period = int(10 / n_task)
+        super(SetOfGradualSplitMnist, self).__init__(n_task)
+
+    def generate(self):
+        for i in range(self.n_task):
+            label_list = range(10)[self.period*i:self.period*(i+1)]
+            print(label_list)
+            self.list.append(ds.SplitMnist(label_list))
+
+
 class SetOfAlternativeMnist(object):
     def __init__(self, n_task):
         self.list = []
@@ -181,3 +217,27 @@ class SetOfRandBlockBoxMnist(SetOfDataSet):
     def generate(self):
         for i in range(self.n_task):
             self.list.append(ds.RandBlockBoxMnist(self.ratio))
+
+
+class SetOfRandPermCIFAR10(object):
+    def __init__(self, n_task):
+        self.list = []
+        self.n_task = n_task
+        self.generate()
+
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(ds.RandPermCIFAR10())
+
+    def concat(self):
+        x_train_list = []
+        y_train_list = []
+        for i in range(self.n_task):
+            x_train_list.append(self.list[i].x_train)
+            y_train_list.append(self.list[i].y_train)
+
+        multi_dataset = ds.RandPermCIFAR10()
+        multi_dataset.x_train = np.concatenate(x_train_list, axis=0)
+        multi_dataset.y_train = np.concatenate(y_train_list, axis=0)
+
+        return multi_dataset

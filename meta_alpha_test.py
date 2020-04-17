@@ -12,6 +12,7 @@ from result import logger
 
 def main(argv):
     seed = int(argv[1])
+    step = int(argv[2])
     learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
@@ -50,8 +51,8 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "meta_step10.txt"
-    logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, n_grid)
+    filepath = "meta_step_best.txt"
+    logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, step, n_grid)
 
 
 if __name__ == '__main__':

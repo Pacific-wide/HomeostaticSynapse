@@ -9,24 +9,18 @@ from optimizer import optimizer as op
 def main(argv):
     print(argv)
     seed = int(argv[1])
-    learning_rate = 5e-2
+    learning_rate = 5e-4
     n_epoch = 1
     n_batch = 10
     n_task = 1
+    n_grid = 4
 
     np.random.seed(seed)
     model_dir = "single"
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=6000)
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(50000/n_batch))
 
-    # single_dataset = dataset.RandColPermMnist()
-
-    # single_dataset = dataset.RandRowPermMnist()
-
-    # single_dataset = dataset.RandPermMnist()
-
-    n_grid = 7
-    single_dataset = dataset.RandGridPermMnist(n_grid)
+    single_dataset = dataset.RandGridPermCIFAR10(n_grid)
 
     d_in = single_dataset.d_in
     my_opt = op.SGDOptimizer().build(learning_rate)

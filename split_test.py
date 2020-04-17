@@ -14,8 +14,6 @@ def main(argv):
     print(argv)
     seed = int(argv[1])
     n_grid = int(argv[2])
-    # alpha = float(argv[2])
-    # n_grid = 7
     alpha = 0.1
     learning_rate = 5e-4
     n_epoch = 1
@@ -25,12 +23,12 @@ def main(argv):
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
-    model_dir = "single"
+    model_dir = "BlockGrid"
     np.random.seed(seed)
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
-    set_of_datasets = sod.SetOfMnistPlusGrid(n_task, n_grid)
+    set_of_datasets = sod.SetOfMnistPlusGridCIFAR10(n_task, n_grid)
 
     d_in = set_of_datasets.list[0].d_in
 
@@ -50,7 +48,7 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = "cifar_grid/" + str(n_grid)+".txt"
+    filepath = "GridCIFAR/" + str(n_grid) + ".txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, n_grid)
 
 

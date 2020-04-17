@@ -256,6 +256,38 @@ class RandBlockBoxMnist(BlockBoxMnist):
         super(RandBlockBoxMnist, self).__init__(block_ratio, i_row, i_col)
 
 
+class SplitMnist(Mnist):
+    def __init__(self, label_list):
+        super(SplitMnist, self).__init__()
+        self.label_list = label_list
+        self.split()
+        self.flatten()
+
+    def split(self):
+        train_index = self.obtain_index__from_label(self.y_train)
+        test_index = self.obtain_index__from_label(self.y_test)
+
+        self.x_train = self.x_train[train_index]
+        self.x_test = self.x_test[test_index]
+        print(self.x_train.shape)
+        print(self.x_test.shape)
+
+        self.y_train = self.y_train[train_index]
+        self.y_test = self.y_test[test_index]
+
+        print(self.y_train.shape)
+        print(self.y_test.shape)
+
+    def obtain_index__from_label(self, y_tensor):
+        index_list = []
+        for label in self.label_list:
+            indexes = np.where(label == y_tensor)[0]
+            index_list.extend(indexes)
+            index_list.sort()
+
+        return index_list
+
+
 class SVHN(DataSet):
     def __init__(self):
         super(SVHN, self).__init__()
@@ -269,7 +301,6 @@ class SVHN(DataSet):
         self.y_train = train['y']   # (73257, 1)
         self.x_test = test['X']     # (32, 32, 3, 26032)
         self.y_test = test['y']     # (26032, 1)
-
 
     def normalize(self):
         self.x_train = self.x_train.astype(np.float32)
@@ -298,54 +329,94 @@ class CIFAR10(DataSet):
     def normalize(self):
         self.x_train = self.x_train.astype(np.float32)  # (50000, 32, 32, 3)
         self.x_test = self.x_test.astype(np.float32)  # (10000, 32, 32, 3)
-        self.x_train = self.x_train.reshape(self.x_train.shape[0], -1) / 255.0 # (50000, 3*1024)
-        self.x_test = self.x_test.reshape(self.x_test.shape[0], -1) / 255.0 # (10000, 3*1024)
+        self.x_train = self.x_train / 255.0 # (50000, 3*1024)
+        self.x_test = self.x_test / 255.0 # (10000, 3*1024)
 
         self.y_train = self.y_train.astype(np.int64)
         self.y_test = self.y_test.astype(np.int64)
-        self.y_train = self.y_train.reshape(self.y_train.shape[0])  # (50000, )
-        self.y_test = self.y_test.reshape(self.y_test.shape[0]) # (10000, )
+        self.y_train = self.y_train.reshape(self.y_train.shape[0])
+        self.y_test = self.y_test.reshape(self.y_test.shape[0])
+
+    def flatten(self):
+        self.x_train = self.x_train.reshape(self.x_train.shape[0], -1)
+        self.x_test = self.x_test.reshape(self.x_test.shape[0], -1)
+
+    def flatten_2D(self):
+        self.x_train = self.x_train.reshape(self.x_train.shape[0], 1024, 3)
+        self.x_test = self.x_test.reshape(self.x_test.shape[0], 1024, 3)
 
 
 class PermCIFAR10(CIFAR10):
-    def __init__(self, permutation):
+    def __init__(self, perm):
         super(PermCIFAR10, self).__init__()
-        self.permutation = permutation
+        self.perm = perm
         self.permute()
+        self.flatten()
 
     def permute(self):
-        self.x_train = self.x_train[:, self.permutation]
-        self.x_test = self.x_test[:, self.permutation]
+        self.flatten_2D()
+        self.x_train = self.x_train[:, self.perm, :]
+        self.x_test = self.x_test[:, self.perm, :]
+
+
+class GridPermCIFAR10(PermCIFAR10):
+    def __init__(self, perm, n_grid):
+        self.n_grid = n_grid
+        self.row = 32
+        self.col = 32
+        self.n_block = int(self.row / self.n_grid)
+
+        super(GridPermCIFAR10, self).__init__(perm)
+
+    def permute(self):
+        for i, train_sample in enumerate(self.x_train):
+            tr_blocks = self.make_blocks(train_sample) # (32 ,32, 3)
+            tr_perm_sample = self.permute_blocks(self.perm, tr_blocks)
+
+            self.x_train[i] = tr_perm_sample
+
+        for i, test_sample in enumerate(self.x_test):
+            te_blocks = self.make_blocks(test_sample)
+            te_perm_sample = self.permute_blocks(self.perm, te_blocks)
+
+            self.x_test[i] = te_perm_sample
+
+        self.flatten()
+
+    def make_blocks(self, sample):
+        x = sample
+        blocks = []
+        for i in range(self.n_grid):
+            for j in range(self.n_grid):
+                n = self.n_block
+                sub_x = x[n*i:n*(i+1), n*j:n*(j+1), :]
+                blocks.append(sub_x)
+
+        return blocks
+
+    def permute_blocks(self, perm, blocks):
+        perm_x = np.zeros((self.row, self.col, 3), dtype=float)
+        for index, order in enumerate(perm):
+            i = int(order / self.n_grid)
+            j = order % self.n_grid
+            n = self.n_block
+
+            perm_x[n*i:n*(i+1), n*j:n*(j+1), :] = blocks[index]
+
+        return perm_x
 
 
 class RandPermCIFAR10(PermCIFAR10):
     def __init__(self):
-        permutation = np.random.permutation(32*32*3)
-        super(RandPermCIFAR10, self).__init__(permutation)
+        perm = np.random.permutation(32*32)
+        super(RandPermCIFAR10, self).__init__(perm)
 
 
-class SetOfRandPermCIFAR10(object):
-    def __init__(self, n_task):
-        self.list = []
-        self.n_task = n_task
-        self.generate()
-
-    def generate(self):
-        for i in range(self.n_task):
-            self.list.append(RandPermCIFAR10())
-
-    def concat(self):
-        x_train_list = []
-        y_train_list = []
-        for i in range(self.n_task):
-            x_train_list.append(self.list[i].x_train)
-            y_train_list.append(self.list[i].y_train)
-
-        multi_dataset = RandPermCIFAR10()
-        multi_dataset.x_train = np.concatenate(x_train_list, axis=0)
-        multi_dataset.y_train = np.concatenate(y_train_list, axis=0)
-
-        return multi_dataset
+class RandGridPermCIFAR10(GridPermCIFAR10):
+    def __init__(self, n_grid):
+        self.grid_pixels = n_grid * n_grid
+        perm = np.random.permutation(self.grid_pixels)
+        super(RandGridPermCIFAR10, self).__init__(perm, n_grid)
 
 
 class FashionMnist(DataSet):
