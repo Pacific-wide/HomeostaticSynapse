@@ -1,4 +1,4 @@
-def save(filepath, accuracy_matrix, metric_list, seed, learning_specs, n_grid):
+def save(filepath, accuracy_matrix, metric_list, seed, learning_specs, step, n_grid=0):
 
     alpha = learning_specs[0].alpha
     f = open(filepath, 'a')

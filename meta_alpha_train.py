@@ -10,7 +10,7 @@ from optimizer import spec
 def main(argv):
     # learning rate
     learning_rate = 5e-2
-    meta_learning_rate = 5e-5
+    meta_learning_rate = 5e-4
     seed = int(argv[1])
     step = int(argv[2])
     # learning parameter
