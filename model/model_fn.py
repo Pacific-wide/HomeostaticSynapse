@@ -106,6 +106,8 @@ class EWCModelFNCreator(ModelFNCreator):
         g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher')
         v_pre = self.load_tensors(self.learning_spec.model_dir, 'main')
 
+        print(g_pre)
+
         self.loss = self.loss + self.alpha * self.add_ewc_loss(self.model.weights, v_pre, g_pre)
         gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
         grads_and_vars = gradient_computer.compute()
@@ -182,6 +184,10 @@ class MetaModelFNCreator(ModelFNCreator):
 
         return meta_loss
 
+    def combine_meta_features(self, g_cur, v_cur, v_pre):
+        combine_list = (self.layer_to_flat(g_cur), self.layer_to_flat(v_cur)-self.layer_to_flat(v_pre))
+
+        return tf.concat(combine_list, axis=1)
 
     @staticmethod
     def layer_to_flat(grads):
@@ -195,11 +201,11 @@ class MetaModelFNCreator(ModelFNCreator):
     @staticmethod
     def flat_to_layer(grads, cur_vars):
         grads_list = []
+        begin = 0
         for var in cur_vars:
             pre_shape = tf.shape(var)
             flat_var = tf.reshape(var, [-1, 1])
             size = tf.shape(flat_var)[0]
-            begin = 0
             grad_vec = tf.reshape(grads, [-1])
             flat_grad = tf.slice(grad_vec, [begin], [size])
             grad = tf.reshape(flat_grad, pre_shape)
@@ -235,24 +241,23 @@ class MetaGradientTestModelFNCreator(MetaGradientModelFNCreator):
         g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher')
         v_pre = self.load_tensors(self.learning_spec.model_dir, 'main')
 
-        meta_batch = self.combine_meta_features(g_cur, g_pre, v_cur)
+        meta_batch = self.combine_meta_features(g_pre, v_cur, v_pre)
         meta_output = self.meta_model(meta_batch)
-        f_meta_output = self.flat_to_layer(meta_output, self.model.weights)
+        l_meta_output = self.flat_to_layer(meta_output, self.model.weights)
+        modified_grads_and_vars = self.add_gradient(grads_and_vars, l_meta_output, self.alpha)
+        train_op = self.opt.apply_gradients(modified_grads_and_vars, global_step=tf.train.get_global_step())
 
-        self.total_loss = self.loss + self.alpha * self.add_meta_loss(f_meta_output, self.model.weights, v_pre)
-        total_gradient_computer = gc.ScopeGradientComputer(self.opt, self.total_loss, self.model.weights)
-        total_grads_and_vars = total_gradient_computer.compute()
+        gradient_hook = self.compute_curvature(modified_grads_and_vars)
 
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+        return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op, training_hooks=gradient_hook)
 
-        gradient_hook = self.compute_curvature(total_grads_and_vars)
+    def add_gradient(self, grads_and_vars, meta_grads, alpha):
+        modified_grads_and_vars = []
+        for grad_and_var, meta_grad in zip(grads_and_vars, meta_grads):
+            modified_grad_and_var = (grad_and_var[0] - alpha * meta_grad, grad_and_var[1])
+            modified_grads_and_vars.append(modified_grad_and_var)
 
-        return tf.estimator.EstimatorSpec(self.mode, loss=self.total_loss, train_op=train_op, training_hooks=gradient_hook)
-
-    def combine_meta_features(self, g_cur, g_pre, t_cur):
-        combine_list = (self.layer_to_flat(g_cur), self.layer_to_flat(g_pre), self.layer_to_flat(t_cur))
-
-        return tf.concat(combine_list, axis=1)
+        return modified_grads_and_vars
 
 
 class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
@@ -268,7 +273,7 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
         g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher')
         v_pre = self.load_tensors(self.learning_spec.model_dir, 'main')
 
-        meta_batch = self.combine_meta_features(g_cur, g_pre, v_cur, v_pre)
+        meta_batch = self.combine_alpha_meta_features(g_cur, g_pre, v_cur, v_pre)
         meta_output = self.meta_model(meta_batch)
 
         tf.summary.scalar(name='losses/meta_output', tensor=tf.reshape(meta_output, shape=[]))
@@ -285,7 +290,7 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
 
         return tf.estimator.EstimatorSpec(self.mode, loss=self.total_loss, train_op=train_op, training_hooks=gradient_hook)
 
-    def combine_meta_features(self, g_cur, g_pre, v_cur, v_pre):
+    def combine_alpha_meta_features(self, g_cur, g_pre, v_cur, v_pre):
         combine_list = (self.layer_to_flat(g_cur), self.layer_to_flat(g_pre), abs(self.layer_to_flat(v_cur)-self.layer_to_flat(v_pre)))
 
         return tf.reshape(tf.concat(combine_list, axis=0), shape=[1, -1])
@@ -326,13 +331,12 @@ class MetaGradientTrainModelFNCreator(MetaGradientModelFNCreator):
 
         train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
 
-        meta_batch = self.combine_meta_features(g_cur, g_pre, v_cur, v_pre)
-        meta_label = self.make_meta_labels(g_cur, g_joint, v_cur, v_pre, self.alpha)
+        meta_batch = self.combine_meta_features(g_pre, v_cur, v_pre)
+        meta_label = self.make_meta_labels(g_cur, g_joint, self.alpha)
 
         meta_output = self.meta_model(meta_batch)
 
         meta_loss = tf.losses.mean_squared_error(meta_output, meta_label)
-        tf.summary.scalar(name='losses/meta_loss', tensor=meta_loss)
 
         meta_gradient_computer = gc.ScopeGradientComputer(self.meta_opt, meta_loss, self.meta_model.weights)
         meta_grads_and_vars = meta_gradient_computer.compute()
@@ -344,22 +348,12 @@ class MetaGradientTrainModelFNCreator(MetaGradientModelFNCreator):
         return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=tf.group([train_op, meta_train_op]),
                                           training_hooks=gradient_hook)
 
-    def combine_meta_features(self, g_cur, g_pre, v_cur, v_pre):
-        combine_list = (self.layer_to_flat(g_cur),
-                        self.layer_to_flat(g_pre),
-                        self.layer_to_flat(v_cur),
-                        self.layer_to_flat(v_pre))
-
-        return tf.concat(combine_list, axis=1)
-
-    def make_meta_labels(self, g_cur, g_joint, t_cur, t_pre, alpha):
+    def make_meta_labels(self, g_cur, g_joint, alpha):
         flat_g_cur = self.layer_to_flat(g_cur)
         flat_g_joint = self.layer_to_flat(g_joint)
-        flat_t_cur = self.layer_to_flat(t_cur)
-        flat_t_pre = self.layer_to_flat(t_pre)
-        epsilon = 5e-2
 
-        importance = 0.5 * (flat_g_joint - flat_g_cur) / (alpha * abs(flat_t_cur - flat_t_pre + epsilon))
+        importance = (flat_g_joint - flat_g_cur) / alpha
+
         return importance
 
 

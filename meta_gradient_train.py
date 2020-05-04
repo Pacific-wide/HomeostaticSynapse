@@ -29,7 +29,7 @@ def main(unused_argv):
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=60000/n_batch)
 
     # generate sequence dataset
-    set_of_datasets = sod.SetOfSwapGrid(n_task + 1, n_grid=n_grid, step=10)
+    set_of_datasets = sod.SetOfRandGridPermMnist(n_task+1, n_grid)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):

@@ -51,10 +51,10 @@ class SquareAccumulationGradientHook(GradientHook):
         self.period = int(60000/self.n_batch)
         self.assign_condition = tf.greater_equal(self.global_step % self.period, self.period-self.n_batch)
         self.assign_gradients = tf.where(self.assign_condition, tf.math.square(self.gradients), tf.zeros_like(self.gradients))
-        self.sum_gradients = tf.assign(self.sum_gradients, self.assign_gradients)
+        self.sum_gradients = tf.assign_add(self.sum_gradients, self.assign_gradients)
 
     def save_fisher_component(self, results):
-        if (results['global_step']+self.n_batch) % 6000 == 0:
+        if (results['global_step']+self.n_batch) % self.period == 0:
             print(self.name, ': fisher', np.linalg.norm(results['sum_gradients']))
             print('step condtion: ', results['condition'])
 
@@ -76,7 +76,7 @@ class SequentialSquareAccumulationGradientHook(GradientHook):
         super(SequentialSquareAccumulationGradientHook, self).begin()
 
         for i in range(self.n_task):
-            self.conditions.append(tf.equal(self.global_step, int(60000/self.n_batch) * i))
+            self.conditions.append(tf.equal(self.global_step, int(60000/self.n_batch) * i - self.n_batch))
             self.fisher.append(tf.Variable(tf.zeros_like(self.gradients), name=('fisher' + str(i) + '/' + self.name)))
             self.theta.append(tf.Variable(tf.zeros_like(self.gradients), name=('theta' + str(i) + '/' + self.name)))
 

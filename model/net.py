@@ -40,7 +40,7 @@ class Main(FCN):
 
 class Meta(FCN):
     def __init__(self):
-        super(Meta, self).__init__("meta", 2, 4, 1, 50)
+        super(Meta, self).__init__("meta", 2, 2, 1, 50)
 
 
 class MetaAlpha(FCN):
