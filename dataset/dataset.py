@@ -199,6 +199,7 @@ class RandGridPermMnist(GridPermMnist):
     def __init__(self, n_grid):
         self.grid_pixels = n_grid * n_grid
         perm = np.random.permutation(self.grid_pixels)
+        print(perm)
         super(RandGridPermMnist, self).__init__(perm, n_grid)
 
 

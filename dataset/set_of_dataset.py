@@ -56,7 +56,6 @@ class SetOfSwapGrid(SetOfDataSet):
             self.list.append(ds.GridPermMnist(self.grid_perm, self.n_grid))
             for j in range(self.step):
                 self.swap_perm(index*(j+1))
-            print(self.grid_perm)
 
     def swap_perm(self, index):
         input_index = index % self.grid_blocks
