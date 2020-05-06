@@ -28,7 +28,7 @@ def main(argv):
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
-    set_of_datasets = sod.SetOfRandGridPermMnist(n_task, n_grid)
+    set_of_datasets = sod.SetOfRandColPermMnist(n_task)
 
     d_in = set_of_datasets.list[0].d_in
 
@@ -47,7 +47,7 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = "log_grid_" + model_dir + "_100.txt"
+    filepath =  model_dir + "_col.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, 0, n_grid)
 
 
