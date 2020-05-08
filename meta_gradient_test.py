@@ -13,7 +13,7 @@ from result import logger
 def main(argv):
     seed = int(argv[1])
     alpha = float(argv[2])
-    learning_rate = 1e-1
+    learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
     n_task = 5
@@ -23,7 +23,7 @@ def main(argv):
 
     # model path
     model_dir = "meta"
-    meta_model_dir = "meta_save2"
+    meta_model_dir = "meta_save"
     np.random.seed(seed)
 
     # config
@@ -52,7 +52,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = model_dir + ".txt"
+    filepath = model_dir + "2.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, n_grid)
 
 

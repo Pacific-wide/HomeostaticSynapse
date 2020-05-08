@@ -35,7 +35,7 @@ class FCN(Network):
 
 class Main(FCN):
     def __init__(self, d_in):
-        super(Main, self).__init__("main", 2, d_in, 10, 50)
+        super(Main, self).__init__("main", 2, d_in, 10, 20000)
 
 
 class Meta(FCN):
@@ -45,7 +45,7 @@ class Meta(FCN):
 
 class MetaAlpha(FCN):
     def __init__(self):
-        super(MetaAlpha, self).__init__("meta", 2, 4*42310, 1, 100)
+        super(MetaAlpha, self).__init__("meta", 2, 3, 1, 200)
 
 
 class SeparateMain(FCN):

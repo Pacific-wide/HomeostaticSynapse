@@ -390,14 +390,12 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
 
         train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
 
-        meta_batch = self.combine_meta_features(g_cur, g_pre, v_cur, v_pre)
+        meta_batch = self.combine_mean_features(g_cur, g_pre, v_cur, v_pre)
         meta_label = self.make_meta_labels(g_cur, g_joint, v_cur, v_pre, g_pre)
         tf.summary.scalar(name='losses/meta_label', tensor=tf.reshape(meta_label, []))
         meta_output = self.meta_model(meta_batch)
         tf.summary.scalar(name='losses/meta_output', tensor=tf.reshape(meta_output, []))
 
-        print(meta_label.shape)
-        print(meta_output.shape)
         meta_loss = tf.losses.mean_squared_error(meta_output, meta_label)
         tf.summary.scalar(name='losses/meta_loss', tensor=meta_loss)
 
@@ -411,8 +409,11 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=tf.group([train_op, meta_train_op]),
                                           training_hooks=gradient_hook)
 
-    def combine_meta_features(self, g_cur, g_pre, v_cur, v_pre):
-        combine_list = (self.layer_to_flat(g_cur), self.layer_to_flat(g_pre), abs(self.layer_to_flat(v_cur)-self.layer_to_flat(v_pre)))
+    def combine_mean_features(self, g_cur, g_pre, v_pre):
+        combine_list = (tf.reduce_sum(g_cur * g_pre),
+                        tf.reduced_mean(g_cur),
+                        tf.reduced_mean(g_pre),
+                        tf.reduced_mean(v_pre))
 
         return tf.reshape(tf.concat(combine_list, axis=0),shape=[1, -1])
 
