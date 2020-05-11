@@ -273,7 +273,7 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
         g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher')
         v_pre = self.load_tensors(self.learning_spec.model_dir, 'main')
 
-        meta_batch = self.combine_alpha_meta_features(g_cur, g_pre, v_cur, v_pre)
+        meta_batch = self.combine_meta_features(g_cur, g_pre, v_pre)
         meta_output = self.meta_model(meta_batch)
 
         tf.summary.scalar(name='losses/meta_output', tensor=tf.reshape(meta_output, shape=[]))
@@ -290,10 +290,17 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
 
         return tf.estimator.EstimatorSpec(self.mode, loss=self.total_loss, train_op=train_op, training_hooks=gradient_hook)
 
-    def combine_alpha_meta_features(self, g_cur, g_pre, v_cur, v_pre):
-        combine_list = (self.layer_to_flat(g_cur), self.layer_to_flat(g_pre), abs(self.layer_to_flat(v_cur)-self.layer_to_flat(v_pre)))
+    def combine_meta_features(self, g_cur, g_pre, v_pre):
+        flat_g_pre = self.layer_to_flat(g_pre)
+        flat_g_cur = self.layer_to_flat(g_cur)
+        flat_v_pre = self.layer_to_flat(v_pre)
 
-        return tf.reshape(tf.concat(combine_list, axis=0), shape=[1, -1])
+        combine_list = (tf.reduce_sum(tf.matmul(flat_g_pre, flat_g_cur, transpose_a=True)),
+                        tf.reduce_mean(flat_g_pre),
+                        tf.reduce_mean(flat_g_cur),
+                        tf.reduce_mean(flat_v_pre))
+
+        return tf.reshape(tf.stack(combine_list), shape=[1, -1])
 
 
 class MetaGradientTrainModelFNCreator(MetaGradientModelFNCreator):
@@ -390,13 +397,15 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
 
         train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
 
-        meta_batch = self.combine_mean_features(g_cur, g_pre, v_cur, v_pre)
+        meta_batch = self.combine_meta_features(g_cur, g_pre, v_pre)
         meta_label = self.make_meta_labels(g_cur, g_joint, v_cur, v_pre, g_pre)
         tf.summary.scalar(name='losses/meta_label', tensor=tf.reshape(meta_label, []))
         meta_output = self.meta_model(meta_batch)
         tf.summary.scalar(name='losses/meta_output', tensor=tf.reshape(meta_output, []))
 
-        meta_loss = tf.losses.mean_squared_error(meta_output, meta_label)
+        print(meta_label.shape)
+        print(meta_output.shape)
+        meta_loss = tf.losses.absolute_difference(meta_output, meta_label)
         tf.summary.scalar(name='losses/meta_loss', tensor=meta_loss)
 
         meta_gradient_computer = gc.ScopeGradientComputer(self.meta_opt, meta_loss, self.meta_model.weights)
@@ -409,13 +418,17 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=tf.group([train_op, meta_train_op]),
                                           training_hooks=gradient_hook)
 
-    def combine_mean_features(self, g_cur, g_pre, v_pre):
-        combine_list = (tf.reduce_sum(g_cur * g_pre),
-                        tf.reduced_mean(g_cur),
-                        tf.reduced_mean(g_pre),
-                        tf.reduced_mean(v_pre))
+    def combine_meta_features(self, g_cur, g_pre, v_pre):
+        flat_g_pre = self.layer_to_flat(g_pre)
+        flat_g_cur = self.layer_to_flat(g_cur)
+        flat_v_pre = self.layer_to_flat(v_pre)
 
-        return tf.reshape(tf.concat(combine_list, axis=0),shape=[1, -1])
+        combine_list = (tf.reduce_sum(tf.matmul(flat_g_pre, flat_g_cur, transpose_a=True)),
+                        tf.reduce_mean(flat_g_pre),
+                        tf.reduce_mean(flat_g_cur),
+                        tf.reduce_mean(flat_v_pre))
+
+        return tf.reshape(tf.stack(combine_list), shape=[1, -1])
 
     def make_meta_labels(self, g_cur, g_joint, v_cur, v_pre, g_pre):
         flat_g_pre = self.layer_to_flat(g_pre)
@@ -428,11 +441,12 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         X = flat_g_joint-flat_g_cur
         Y = tf.math.multiply(flat_g_pre, abs(flat_v_cur-flat_v_pre))
         X2 = tf.math.multiply(X, X)
+        XY = tf.math.multiply(X, Y)
 
         print(flat_g_joint)
-        epsilon = 5e-2
+        epsilon = 0
 
-        alpha = tf.reduce_mean(X2)/(tf.reduce_mean(Y) + epsilon)
+        alpha = tf.reduce_sum(X2)/(tf.reduce_sum(XY) + epsilon)
         tf.summary.scalar(name='parameter/alpha', tensor=alpha)
 
         return tf.reshape(alpha, shape=[1, -1])

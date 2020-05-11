@@ -254,6 +254,6 @@ class MetaGradientTrainEstimatorLearner(MetaLearner):
 class MetaAlphaTrainEstimatorLearner(MetaGradientTrainEstimatorLearner):
     def model_fn(self, features, labels, mode):
         model_fn_creator = model_fn.MetaAlphaTrainModelFNCreator(features, labels, mode,
-                                                                 self.learning_spec)
+                                                                 self.learning_spec, self.meta_learning_spec)
 
         return model_fn_creator.create()

@@ -28,12 +28,12 @@ def main(argv):
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
-    set_of_datasets = sod.SetOfRandColPermMnist(n_task)
+    set_of_datasets = sod.SetOfRandGridPermMnist(n_task, n_grid)
 
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):
-        opt = op.SGDOptimizer().build(learning_rates[i])
+        opt = op.SGDOptimizer(learning_rates[i]).build()
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec, alpha))
 
@@ -47,7 +47,7 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = model_dir + "_col.txt"
+    filepath = model_dir + "_100.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, 0, n_grid)
 
 

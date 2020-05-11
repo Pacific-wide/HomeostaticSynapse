@@ -3,15 +3,25 @@ import abc
 
 
 class Optimizer(object):
+    def __init__(self, learning_rate):
+        self.learning_rate = learning_rate
+
     @abc.abstractmethod
-    def build(self, learning_rate):
+    def build(self):
         pass
 
 
 class SGDOptimizer(Optimizer):
-    def __init__(self):
-        super(Optimizer, self).__init__()
+    def __init__(self, learning_rate):
+        super(SGDOptimizer, self).__init__(learning_rate)
 
-    def build(self, learning_rate):
-        return tf.train.GradientDescentOptimizer(learning_rate)
+    def build(self):
+        return tf.train.GradientDescentOptimizer(self.learning_rate)
 
+
+class AdamOptimizer(Optimizer):
+    def __init__(self, learning_rate):
+        super(Optimizer, self).__init__(learning_rate)
+
+    def build(self):
+        return tf.train.AdamOptimizer(self.learning_rate)

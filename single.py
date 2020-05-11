@@ -16,7 +16,7 @@ def main(argv):
     alpha = float(argv[2])
     learning_rate = 5e-2
     n_epoch = 1
-    n_batch = 10
+    n_batch = 100
     n_task = 5
     n_grid = 7
 
@@ -33,7 +33,7 @@ def main(argv):
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):
-        opt = op.SGDOptimizer().build(learning_rates[i])
+        opt = op.SGDOptimizer(learning_rates[i]).build()
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec, alpha))
 

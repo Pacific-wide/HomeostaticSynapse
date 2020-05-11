@@ -23,12 +23,13 @@ def main(argv):
 
     # model path
     model_dir = "meta"
+    meta_model_dir = "meta7"
     np.random.seed(seed)
 
     # config
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=60000/n_batch)
-    ws0 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["meta"])
-    ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=["main", "meta"])
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000 / n_batch))
+    ws0 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=meta_model_dir, vars_to_warm_start="meta")
+    ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=".*")
 
     # generate sequence dataset
     set_of_datasets = sod.SetOfRandGridPermMnist(n_task, n_grid)
@@ -36,7 +37,7 @@ def main(argv):
 
     # learning specs
     for i in range(n_task):
-        opt = op.SGDOptimizer().build(learning_rates[i])
+        opt = op.SGDOptimizer(learning_rates[i]).build()
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec))
 
@@ -51,7 +52,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "meta_step_best.txt"
+    filepath = "meta.txt"
     logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, step, n_grid)
 
 

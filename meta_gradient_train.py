@@ -33,11 +33,11 @@ def main(unused_argv):
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):
-        opt = op.SGDOptimizer().build(learning_rates[i])
+        opt = op.SGDOptimizer(learning_rates[i]).build()
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec))
 
-    meta_opt = op.SGDOptimizer().build(meta_learning_rate)
+    meta_opt = op.SGDOptimizer(meta_learning_rate).build()
     meta_opt_spec = spec.OptimizerSpec(meta_opt, d_in)
     meta_learning_spec = spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, meta_opt_spec, alpha)
 
