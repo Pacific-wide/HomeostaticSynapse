@@ -84,15 +84,17 @@ class BaseModelFNCreator(ModelFNCreator):
 
 
 class FullBaseModelFNCreator(BaseModelFNCreator):
-    def __init__(self, features, labels, mode, learning_spec):
+    def __init__(self, features, labels, mode, learning_spec, i_task):
         super(FullBaseModelFNCreator, self).__init__(features, labels, mode, learning_spec)
         self.learning_spec = learning_spec
+        self.i_task = i_task
 
     def compute_curvature(self, grads_and_vars):
         gradient_hook = []
         for i, grad_and_var in enumerate(grads_and_vars):
             gradient_hook.append(hook.SequentialSquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch,
-                                                                               self.learning_spec.n_task))
+                                                                               self.learning_spec.n_task,
+                                                                               self.i_task))
 
         return gradient_hook
 
@@ -124,18 +126,18 @@ class EWCModelFNCreator(ModelFNCreator):
     def add_ewc_loss(self, v_cur, v_pre, g_pre):
         ewc_loss = 0
         for w, v, f in zip(v_cur, v_pre, g_pre):
-            ewc_loss = ewc_loss + tf.math.square(tf.losses.mean_squared_error(w, v, f))
+            ewc_loss = ewc_loss + tf.losses.mean_squared_error(w, v, f)
 
         return ewc_loss
 
 
 class FullEWCModelFNCreator(FullBaseModelFNCreator):
-    def __init__(self, features, labels, mode, learning_spec):
-        super(FullEWCModelFNCreator, self).__init__(features, labels, mode, learning_spec)
+    def __init__(self, features, labels, mode, learning_spec, i_task):
+        super(FullEWCModelFNCreator, self).__init__(features, labels, mode, learning_spec, i_task)
         self.alpha = learning_spec.alpha
 
     def create(self):
-        self.loss = self.loss + self.alpha * self.add_ewc_loss(self.model.weights, self.learning_spec.n_task)
+        self.loss = self.loss + self.alpha * self.add_ewc_loss(self.model.weights)
         gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
         grads_and_vars = gradient_computer.compute()
 
@@ -148,13 +150,13 @@ class FullEWCModelFNCreator(FullBaseModelFNCreator):
 
         return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op, training_hooks=gradient_hook)
 
-    def add_ewc_loss(self, v_cur, n_task):
+    def add_ewc_loss(self, v_cur):
         ewc_loss = 0
-        for i in range(n_task):
+        for i in range(self.i_task):
             g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher'+str(i))
             v_pre = self.load_tensors(self.learning_spec.model_dir, 'theta'+str(i))
             for w, v, f in zip(v_cur, v_pre, g_pre):
-                ewc_loss = ewc_loss + tf.math.square(tf.losses.mean_squared_error(w, v, f))
+                ewc_loss = ewc_loss + tf.losses.mean_squared_error(w, v, f)
 
         return ewc_loss
 
@@ -277,6 +279,9 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
         meta_output = self.meta_model(meta_batch)
 
         tf.summary.scalar(name='losses/meta_output', tensor=tf.reshape(meta_output, shape=[]))
+
+        # pos_meta_output = tf.maximum(meta_output, 0)
+        # tf.summary.scalar(name='losses/pos_meta_output', tensor=tf.reshape(pos_meta_output, shape=[]))
 
         self.total_loss = self.loss + meta_output * self.add_meta_loss(g_pre, self.model.weights, v_pre)
         tf.summary.scalar(name='losses/total_loss', tensor=tf.reshape(self.total_loss, shape=[]))

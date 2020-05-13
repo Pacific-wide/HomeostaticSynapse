@@ -9,6 +9,8 @@ class DataSet(object):
         self.load()
         self.d_in = 0
         self.normalize()
+        self.n_train = 0
+        self.n_test = 0
 
     def load(self):
         pass
@@ -22,6 +24,8 @@ class Mnist(DataSet):
         super(Mnist, self).__init__()
         self.row = 28
         self.d_in = self.row * self.row
+        self.n_train = self.x_train.shape[0]
+        self.n_train = self.x_test.shape[0]
 
     def load(self):
         train, test = tf.keras.datasets.mnist.load_data()
@@ -293,6 +297,8 @@ class SVHN(DataSet):
     def __init__(self):
         super(SVHN, self).__init__()
         self.d_in = 32 * 32 * 3
+        self.n_train = self.x_train.shape[0]
+        self.n_train = self.x_test.shape[0]
 
     def load(self):
         train = scipy.io.loadmat('dataset/train.mat')
@@ -323,6 +329,8 @@ class CIFAR10(DataSet):
     def __init__(self):
         super(CIFAR10, self).__init__()
         self.d_in = 32 * 32 * 3
+        self.n_train = self.x_train.shape[0]
+        self.n_train = self.x_test.shape[0]
 
     def load(self):
         (self.x_train, self.y_train), (self.x_test, self.y_test) = tf.keras.datasets.cifar10.load_data()

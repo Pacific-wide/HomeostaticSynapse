@@ -71,11 +71,12 @@ class EWCEstimatorLearner(EstimatorLearner):
 
 
 class FullEWCEstimatorLearner(EWCEstimatorLearner):
-    def __init__(self, dataset, learning_spec, run_config):
+    def __init__(self, dataset, learning_spec, run_config, i_task):
         super(FullEWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+        self.i_task = i_task
 
     def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.FullEWCModelFNCreator(features, labels, mode, self.learning_spec)
+        model_fn_creator = model_fn.FullEWCModelFNCreator(features, labels, mode, self.learning_spec, self.i_task)
 
         return model_fn_creator.create()
 
@@ -108,11 +109,12 @@ class BaseEstimatorLearner(EstimatorLearner):
 
 
 class FullBaseEstimatorLearner(BaseEstimatorLearner):
-    def __init__(self, dataset, learning_spec, run_config):
+    def __init__(self, dataset, learning_spec, run_config, i_task):
         super(BaseEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+        self.i_task = i_task
 
     def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.FullBaseModelFNCreator(features, labels, mode, self.learning_spec)
+        model_fn_creator = model_fn.FullBaseModelFNCreator(features, labels, mode, self.learning_spec, self.i_task)
 
         return model_fn_creator.create()
 

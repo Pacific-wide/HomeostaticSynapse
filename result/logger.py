@@ -1,8 +1,9 @@
-def save(filepath, accuracy_matrix, metric_list, seed, learning_specs, step, n_grid=0):
+def save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, step=0, n_grid=0):
 
     alpha = learning_specs[0].alpha
     f = open(filepath, 'a')
-    f.write("(seed, alpha, step, grid) = (" + str(seed) + "," + str(alpha) + "," + "," + str(n_grid) + ") \n")
+    f.write(model_dir)
+    f.write("(seed, alpha, step, grid) = (" + str(seed) + "," + str(alpha) + "," + str(step) + "," + str(n_grid) + ") \n")
 
     x, y = accuracy_matrix.shape
 

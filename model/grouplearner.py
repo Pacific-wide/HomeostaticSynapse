@@ -68,7 +68,7 @@ class GroupFullEWCLearner(GroupEWCLearner):
 
     def base_train(self):
         base_dataset = self.set_of_dataset.list[0]
-        base_learner = learner.FullBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config)
+        base_learner = learner.FullBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config, 0)
         base_learner.train()
 
         result = base_learner.evaluate()
@@ -79,7 +79,7 @@ class GroupFullEWCLearner(GroupEWCLearner):
 
         for i in range(1, self.n_task):
             dataset = self.set_of_dataset.list[i]
-            single_learner = learner.FullEWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config)
+            single_learner = learner.FullEWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config, i)
             single_learner.train()
 
             self.evaluate(i)

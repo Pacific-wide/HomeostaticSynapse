@@ -12,7 +12,8 @@ from result import logger
 
 def main(argv):
     seed = int(argv[1])
-    step = int(argv[2])
+    meta_model_dir = str(argv[2])
+    step = 0
     learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
@@ -22,18 +23,18 @@ def main(argv):
     n_grid = 7
 
     # model path
-    model_dir = "meta"
-    meta_model_dir = "meta7"
+    model_dir = "meta" + meta_model_dir
     np.random.seed(seed)
-
-    # config
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000 / n_batch))
-    ws0 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=meta_model_dir, vars_to_warm_start="meta")
-    ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=".*")
 
     # generate sequence dataset
     set_of_datasets = sod.SetOfRandGridPermMnist(n_task, n_grid)
     d_in = set_of_datasets.list[0].d_in
+    n_train = set_of_datasets.list[0].n_train
+
+    # config
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(n_train / n_batch))
+    ws0 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=meta_model_dir, vars_to_warm_start="meta")
+    ws1 = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=model_dir, vars_to_warm_start=".*")
 
     # learning specs
     for i in range(n_task):
@@ -53,7 +54,7 @@ def main(argv):
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
     filepath = "meta.txt"
-    logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, step, n_grid)
+    logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, step, n_grid)
 
 
 if __name__ == '__main__':
