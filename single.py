@@ -47,8 +47,8 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = "10" + model_dir + ".txt"
-    logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, 0, n_grid)
+    filepath = model_dir + ".txt"
+    logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, 0, n_grid)
 
 
 if __name__ == '__main__':

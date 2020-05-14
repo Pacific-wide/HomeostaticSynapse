@@ -123,26 +123,7 @@ class GroupMultiLearner(GroupInDepLearner):
         return self.eval_matrix
 
 
-class GroupMetaGradientTrainLearner(GroupLearner):
-    def __init__(self, set_of_dataset, learning_specs, n_task, run_config, meta_learning_spec):
-        super(GroupMetaGradientTrainLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
-        self.meta_learning_spec = meta_learning_spec
-
-    def base_train(self):
-        base_dataset = self.set_of_dataset.list[0]
-        base_learner = learner.MetaGradientBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config)
-        base_learner.train()
-
-    def train_and_evaluate(self):
-        self.base_train()
-
-        for i in range(0, self.n_task):
-            dataset = self.set_of_dataset.list[i:i+2]
-            meta_learner = learner.MetaGradientTrainEstimatorLearner(dataset, self.learning_specs[i], self.meta_learning_spec, self.run_config)
-            meta_learner.train()
-
-
-class GroupMetaAlphaTrainLearner(GroupMetaGradientTrainLearner):
+class GroupMetaAlphaTrainLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config, meta_learning_spec):
         super(GroupMetaAlphaTrainLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config, meta_learning_spec)
 
@@ -160,34 +141,7 @@ class GroupMetaAlphaTrainLearner(GroupMetaGradientTrainLearner):
             meta_learner.train()
 
 
-class GroupGradientMetaTestLearner(GroupLearner):
-    def __init__(self, set_of_dataset, learning_specs, n_task, run_config, ws0, ws1):
-        super(GroupGradientMetaTestLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
-        self.ws0 = ws0
-        self.ws1 = ws1
-
-    def base_train(self):
-        base_dataset = self.set_of_dataset.list[0]
-        base_learner = learner.MetaGradientWarmBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config, self.ws0)
-        base_learner.train()
-
-        result = base_learner.evaluate()
-        self.eval_matrix[0, 0] = result['accuracy']
-
-    def train_and_evaluate(self):
-        self.base_train()
-
-        for i in range(1, self.n_task):
-            dataset = self.set_of_dataset.list[i]
-            meta_learner = learner.MetaGradientWarmTestEstimatorLearner(dataset, self.learning_specs[i], self.run_config, self.ws1)
-            meta_learner.train()
-
-            self.evaluate(i)
-
-        return self.eval_matrix
-
-
-class GroupMetaAlphaTestLearner(GroupGradientMetaTestLearner):
+class GroupMetaAlphaTestLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config, ws0, ws1):
         super(GroupMetaAlphaTestLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config, ws0, ws1)
 
