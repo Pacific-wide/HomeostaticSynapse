@@ -98,6 +98,17 @@ class MultiEstimatorLearner(EstimatorLearner):
         return model_fn_creator.create()
 
 
+class JointEstimatorLearner(MultiEstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config):
+        super(MultiEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+        self.x_max = dataset.x_train.shape[0]
+
+    def model_fn(self, features, labels, mode):
+        model_fn_creator = model_fn.JointModelFNCreator(features, labels, mode, self.learning_spec)
+
+        return model_fn_creator.create()
+
+
 class BaseEstimatorLearner(EstimatorLearner):
     def __init__(self, dataset, learning_spec, run_config):
         super(BaseEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
@@ -150,50 +161,15 @@ class MetaAlphaWarmTestEstimatorLearner(WarmStartEstimatorLearner):
         return model_fn_creator.create()
 
 
-class MetaAlphaTrainEstimatorLearner(NNLearner):
+class MetaAlphaTrainEstimatorLearner(EstimatorLearner):
     def __init__(self, datasets, learning_spec, meta_learning_spec, run_config):
         super(MetaAlphaTrainEstimatorLearner, self).__init__(datasets, learning_spec)
         self.learning_spec = learning_spec
         self.meta_learning_spec = meta_learning_spec
         self.estimator = tf.estimator.Estimator(model_fn=self.model_fn, config=run_config)
 
-    def train(self):
-        self.estimator.train(input_fn=self.train_input_fn)
-
-    def evaluate(self):
-        return self.estimator.evaluate(input_fn=self.eval_input_fn, steps=1000)
-
     def model_fn(self, features, labels, mode):
         model_fn_creator = model_fn.MetaAlphaTrainModelFNCreator(features, labels, mode,
                                                                  self.learning_spec, self.meta_learning_spec)
 
         return model_fn_creator.create()
-
-    def train_input_fn(self):
-        tf_train0 = tf.data.Dataset.from_tensor_slices((self.datasets[0].x_train, self.datasets[0].y_train))
-        tf_train1 = tf.data.Dataset.from_tensor_slices((self.datasets[1].x_train, self.datasets[1].y_train))
-
-        dataset_tuple = (tf_train0, tf_train1)
-        tf_comb_train = tf.data.Dataset.zip(dataset_tuple)
-        tf_flat_train = tf_comb_train.flat_map(self.map_fn)
-        total_tuple = (tf_flat_train, ) + dataset_tuple
-
-        tf_train = tf.data.Dataset.zip(total_tuple)
-        tf_train = tf_train.map(self.unfold_tuple)
-        tf_train = tf_train.repeat(self.learning_spec.n_epoch).batch(2*self.learning_spec.n_batch)
-
-        return tf_train
-
-    def unfold_tuple(self, *x):
-        t1, t2, t3 = x
-
-        f1, l1 = t1
-        f2, l2 = t2
-        f3, l3 = t3
-
-        return (f1, f2, f3), (l1, l2, l3)
-
-    def map_fn(self, *z):
-        x, y = zip(*z)
-
-        return tf.data.Dataset.from_tensor_slices((tf.stack(x), tf.stack(y)))

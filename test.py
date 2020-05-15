@@ -1,38 +1,32 @@
 import tensorflow as tf
 import numpy as np
 
-from dataset import dataset
+from dataset import set_of_dataset as sod
 from model import learner
-from optimizer import spec
 from optimizer import optimizer as op
+from optimizer import spec
+
 
 def main(argv):
-    print(argv)
-    seed = int(argv[1])
-    learning_rate = 5e-4
-    n_epoch = 1
+    n_task = 2
+    n_grid = 7
     n_batch = 10
-    n_task = 1
-    n_grid = 4
+    model_dir = "test"
+    np.random.seed(0)
 
-    np.random.seed(seed)
-    model_dir = "single"
+    set_of_datasets = sod.SetOfRandGridPermMnist(n_task, n_grid)
+    my_dataset = set_of_datasets.concat()
+    n_train = set_of_datasets.list[0].n_train
+    d_in = set_of_datasets.list[0].d_in
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(50000/n_batch))
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(n_train/n_batch))
 
-    single_dataset = dataset.RandGridPermCIFAR10(n_grid)
+    joint_opt = op.SGDOptimizer(0).build()
+    joint_opt_spec = spec.OptimizerSpec(joint_opt, d_in)
+    joint_learning_spec = spec.LearningSpec(1, n_train, 2, model_dir, joint_opt_spec)
 
-    d_in = single_dataset.d_in
-    my_opt = op.SGDOptimizer().build(learning_rate)
-    my_opt_spec = spec.OptimizerSpec(my_opt, d_in)
-    my_learning_spec = spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, my_opt_spec)
-
-    base_learner = learner.SingleEstimatorLearner(single_dataset, my_learning_spec, run_config)
-
-    base_learner.train()
-
-    result = base_learner.evaluate()
-    print(result)
+    my_learner = learner.JointEstimatorLearner(my_dataset, joint_learning_spec, run_config)
+    my_learner.train()
 
 
 if __name__ == '__main__':

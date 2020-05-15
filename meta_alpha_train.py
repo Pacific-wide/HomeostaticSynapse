@@ -15,7 +15,7 @@ def main(argv):
     step = int(argv[2])
     # learning parameter
     n_epoch = 1
-    n_task = 30
+    n_task = 10
     n_batch = 10
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
@@ -23,7 +23,7 @@ def main(argv):
 
     np.random.seed(seed)
     # model path
-    model_dir = "meta_save_30"
+    model_dir = "meta_alpha"
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
@@ -40,7 +40,13 @@ def main(argv):
     meta_opt_spec = spec.OptimizerSpec(meta_opt, d_in)
     meta_learning_spec = spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, meta_opt_spec)
 
-    my_grouplearner = grouplearner.GroupMetaAlphaTrainLearner(set_of_datasets, learning_specs, n_task, run_config, meta_learning_spec)
+    joint_opt = op.SGDOptimizer(0).build()
+    joint_opt_spec = spec.OptimizerSpec(joint_opt, d_in)
+    joint_learning_spec = spec.LearningSpec(1, set_of_datasets.list[0].n_train, 2, model_dir, joint_opt_spec)
+
+    my_grouplearner = grouplearner.GroupMetaAlphaTrainLearner(set_of_datasets, learning_specs, n_task, run_config,
+                                                              meta_learning_spec,
+                                                              joint_learning_spec)
     my_grouplearner.train_and_evaluate()
 
 

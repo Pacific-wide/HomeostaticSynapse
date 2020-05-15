@@ -23,6 +23,18 @@ class GradientHook(tf.train.SessionRunHook):
             print('step condtion: ', results['condition'])
 
 
+class SaveGradientHook(GradientHook):
+    def __init__(self, grad_and_var, n_batch=10):
+        super(SaveGradientHook, self).__init__(grad_and_var, n_batch)
+
+    def begin(self):
+        self.joint_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('joint/' + self.name))
+        self.joint_gradients = tf.assign(self.joint_gradients, self.gradients)
+
+    def before_run(self, run_context):
+        return tf.train.SessionRunArgs({'sum_gradients': self.joint_gradients, 'global_step': self.global_step})
+
+
 class SquareAccumulationGradientHook(GradientHook):
     def __init__(self, grad_and_var, n_batch):
         super(SquareAccumulationGradientHook, self).__init__(grad_and_var, n_batch)

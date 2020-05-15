@@ -1,4 +1,5 @@
 from model import learner
+from optimizer import spec
 import numpy as np
 
 
@@ -124,8 +125,10 @@ class GroupMultiLearner(GroupInDepLearner):
 
 
 class GroupMetaAlphaTrainLearner(GroupLearner):
-    def __init__(self, set_of_dataset, learning_specs, n_task, run_config, meta_learning_spec):
-        super(GroupMetaAlphaTrainLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config, meta_learning_spec)
+    def __init__(self, set_of_dataset, learning_specs, n_task, run_config, meta_learning_spec, joint_learning_spec):
+        super(GroupMetaAlphaTrainLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+        self.meta_learning_spec = meta_learning_spec
+        self.joint_learning_spec = joint_learning_spec
 
     def base_train(self):
         base_dataset = self.set_of_dataset.list[0]
@@ -136,14 +139,20 @@ class GroupMetaAlphaTrainLearner(GroupLearner):
         self.base_train()
 
         for i in range(0, self.n_task):
-            dataset = self.set_of_dataset.list[i:i+2]
-            meta_learner = learner.MetaAlphaTrainEstimatorLearner(dataset, self.learning_specs[i], self.meta_learning_spec, self.run_config)
+            joint_dataset = self.set_of_dataset.list[i:i+2]
+            cur_dataset = self.set_of_dataset.list[i+1]
+            joint_learner = learner.MultiEstimatorLearner(joint_dataset, self.joint_learning_spec, self.run_config)
+            joint_learner.train()
+            meta_learner = learner.MetaAlphaTrainEstimatorLearner(cur_dataset, self.learning_specs[i],
+                                                                  self.meta_learning_spec, self.run_config)
             meta_learner.train()
 
 
 class GroupMetaAlphaTestLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config, ws0, ws1):
-        super(GroupMetaAlphaTestLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config, ws0, ws1)
+        super(GroupMetaAlphaTestLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+        self.ws0 = ws0
+        self.ws1 = ws1
 
     def base_train(self):
         base_dataset = self.set_of_dataset.list[0]

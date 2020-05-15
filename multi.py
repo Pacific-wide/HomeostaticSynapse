@@ -13,17 +13,17 @@ from result import logger
 def main(argv):
     print(argv)
     seed = int(argv[1])
-    alpha = float(argv[2])
-    learning_rate = 5e-2
+    n_batch = int(argv[2])
+    learning_rate = 5e-3 * n_batch
     n_epoch = 1
-    n_batch = 100
     n_task = 5
     n_grid = 7
+    alpha = 0
 
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
-    model_dir = "indep"
+    model_dir = "multi"
     np.random.seed(seed)
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
@@ -33,11 +33,11 @@ def main(argv):
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):
-        opt = op.SGDOptimizer().build(learning_rates[i])
+        opt = op.SGDOptimizer(learning_rates[i]).build()
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec, alpha))
 
-    my_grouplearner = grouplearner.GroupInDepLearner(set_of_datasets, learning_specs, n_task, run_config)
+    my_grouplearner = grouplearner.GroupMultiLearner(set_of_datasets, learning_specs, n_task, run_config)
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
 
@@ -47,8 +47,8 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = "grid_" + model_dir + "_100.txt"
-    logger.save(filepath, accuracy_matrix, metric_list, seed, learning_specs, 0, n_grid)
+    filepath = model_dir + "_lr.txt"
+    logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, 0, n_grid)
 
 
 if __name__ == '__main__':
