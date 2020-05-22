@@ -12,6 +12,7 @@ class ModelFNCreator(object):
         self.learning_spec = learning_spec
         self.optimizer_spec = self.learning_spec.optimizer_spec
         self.model = net.Main(self.optimizer_spec.d_in).build()
+        print(features)
         self.features = features
         self.logits = self.model(features)
         self.predictions = tf.argmax(self.logits, axis=1)
@@ -65,23 +66,6 @@ class SingleModelFNCreator(ModelFNCreator):
         return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op)
 
 
-class JointModelFNCreator(ModelFNCreator):  # For meta learner's supervision
-    def __init__(self, features, labels, mode, learning_spec):
-        super(JointModelFNCreator, self).__init__(features, labels, mode, learning_spec)
-
-    def create(self):
-        gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
-        grads_and_vars = gradient_computer.compute()
-
-        gradient_hook = []
-        for i, grad_and_var in enumerate(grads_and_vars):
-            gradient_hook.append(hook.SaveGradientHook(grad_and_var))
-
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
-
-        return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op, training_hooks=gradient_hook)
-
-
 class BaseModelFNCreator(ModelFNCreator):
     def __init__(self, features, labels, mode, learning_spec):
         super(BaseModelFNCreator, self).__init__(features, labels, mode, learning_spec)
@@ -98,6 +82,45 @@ class BaseModelFNCreator(ModelFNCreator):
         gradient_hook = self.compute_curvature(grads_and_vars)
 
         return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op, training_hooks=gradient_hook)
+
+
+class CenterBaseModelFNCreator(BaseModelFNCreator):
+    def __init__(self, features, labels, mode, learning_spec, i_task):
+        super(CenterBaseModelFNCreator, self).__init__(features, labels, mode, learning_spec)
+        self.i_task = i_task
+
+    def compute_curvature(self, grads_and_vars):
+        gradient_hook = []
+        for i, grad_and_var in enumerate(grads_and_vars):
+            gradient_hook.append(hook.CenterSquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch))
+
+        return gradient_hook
+
+
+class IMMModelFNCreator(CenterBaseModelFNCreator):
+    def __init__(self, features, labels, mode, learning_spec, i_task):
+        super(IMMModelFNCreator, self).__init__(features, labels, mode, learning_spec, i_task)
+
+    def evaluate(self, loss):
+        v_center = self.load_tensors(self.learning_spec.model_dir, 'center')
+        v_mean = self.average(v_center)
+
+        self.model.set_weight(v_mean)
+        self.logits = self.model(self.features)
+        self.predictions = tf.argmax(self.logits, axis=1)
+
+        accuracy = tf.metrics.accuracy(self.labels, self.predictions)
+        metrics = {'accuracy': accuracy}
+        tf.summary.scalar(name='accuracy', tensor=accuracy)
+
+        return tf.estimator.EstimatorSpec(self.mode, loss=loss, eval_metric_ops=metrics)
+
+    def average(self, v):
+        average_v = []
+        for item in v:
+            average_v.append(item / (self.i_task+1))
+
+        return average_v
 
 
 class FullBaseModelFNCreator(BaseModelFNCreator):
@@ -143,6 +166,37 @@ class EWCModelFNCreator(ModelFNCreator):
     def add_ewc_loss(self, v_cur, v_pre, g_pre):
         ewc_loss = 0
         for w, v, f in zip(v_cur, v_pre, g_pre):
+            ewc_loss = ewc_loss + tf.losses.mean_squared_error(w, v, f)
+
+        return ewc_loss
+
+
+class CenterEWCModelFNCreator(CenterBaseModelFNCreator):
+    def __init__(self, features, labels, mode, learning_spec, i_task):
+        super(CenterEWCModelFNCreator, self).__init__(features, labels, mode, learning_spec, i_task)
+        self.alpha = learning_spec.alpha
+
+    def create(self):
+        g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher')
+        v_pre = self.load_tensors(self.learning_spec.model_dir, 'center')
+
+        self.loss = self.loss + self.alpha * self.add_ewc_loss(self.model.weights, v_pre, g_pre)
+        gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
+        grads_and_vars = gradient_computer.compute()
+
+        if self.mode == tf.estimator.ModeKeys.EVAL:
+            return self.evaluate(self.loss)
+
+        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+
+        gradient_hook = self.compute_curvature(grads_and_vars)
+
+        return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op, training_hooks=gradient_hook)
+
+    def add_ewc_loss(self, v_cur, v_pre, g_pre):
+        ewc_loss = 0
+        for w, v, f in zip(v_cur, v_pre, g_pre):
+            v = v / (self.i_task + 1)
             ewc_loss = ewc_loss + tf.losses.mean_squared_error(w, v, f)
 
         return ewc_loss
@@ -203,11 +257,6 @@ class MetaModelFNCreator(ModelFNCreator):
 
         return meta_loss
 
-    def combine_meta_features(self, g_cur, v_cur, v_pre):
-        combine_list = (self.layer_to_flat(g_cur), self.layer_to_flat(v_cur)-self.layer_to_flat(v_pre))
-
-        return tf.concat(combine_list, axis=1)
-
     @staticmethod
     def layer_to_flat(grads):
         grad_list = []
@@ -239,15 +288,14 @@ class MetaAlphaModelFNCreator(MetaModelFNCreator):
         super(MetaAlphaModelFNCreator, self).__init__(features, labels, mode, learning_spec)
         self.meta_model = net.MetaAlpha().build()
 
-    def combine_meta_features(self, g_cur, g_pre, v_pre):
+    def combine_meta_features(self, g_cur, g_pre, v_pre, v_cur):
         flat_g_pre = self.layer_to_flat(g_pre)
         flat_g_cur = self.layer_to_flat(g_cur)
         flat_v_pre = self.layer_to_flat(v_pre)
+        flat_v_cur = self.layer_to_flat(v_cur)
 
         combine_list = (tf.reduce_sum(tf.matmul(flat_g_pre, flat_g_cur, transpose_a=True)),
-                        tf.reduce_mean(flat_g_pre),
-                        tf.reduce_mean(flat_g_cur),
-                        tf.reduce_mean(flat_v_pre))
+                        tf.norm(flat_v_cur-flat_v_pre))
 
         return tf.reshape(tf.stack(combine_list), shape=[1, -1])
 
@@ -265,7 +313,7 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
         g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher')
         v_pre = self.load_tensors(self.learning_spec.model_dir, 'main')
 
-        meta_batch = self.combine_meta_features(g_cur, g_pre, v_pre)
+        meta_batch = self.combine_meta_features(g_cur, g_pre, v_pre, v_cur)
         meta_output = self.meta_model(meta_batch)
 
         tf.summary.scalar(name='losses/meta_output', tensor=tf.reshape(meta_output, shape=[]))
@@ -285,10 +333,19 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
 
 class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
     def __init__(self, features, labels, mode, learning_spec, meta_learning_spec):
-        super(MetaAlphaTrainModelFNCreator, self).__init__(features, labels, mode, learning_spec)
         self.meta_learning_spec = meta_learning_spec
         self.meta_optimizer_spec = self.meta_learning_spec.optimizer_spec
         self.meta_opt = self.meta_optimizer_spec.optimizer
+
+        _, self.cur_features, self.joint_features = features
+        _, self.cur_labels, self.joint_labels = labels
+
+        super(MetaAlphaTrainModelFNCreator, self).__init__(self.cur_features, self.cur_labels, mode, learning_spec)
+
+        # joint gradient
+        self.joint_logits = self.model(self.joint_features)
+        self.joint_one_hot_labels = tf.one_hot(self.joint_labels, 10)
+        self.joint_loss = tf.losses.softmax_cross_entropy(self.joint_one_hot_labels, self.joint_logits)
 
     def create(self):
         # current gradient
@@ -298,7 +355,10 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
 
         g_cur, v_cur = zip(*grads_and_vars)
 
-        g_joint = self.load_tensors(self.meta_learning_spec.model_dir, 'joint')
+        joint_gradient_computer = gc.ScopeGradientComputer(self.opt, self.joint_loss, self.model.weights)
+        joint_grads_and_vars = joint_gradient_computer.compute()
+
+        g_joint, _ = zip(*joint_grads_and_vars)
         g_pre = self.load_tensors(self.meta_learning_spec.model_dir, 'fisher')
         v_pre = self.load_tensors(self.meta_learning_spec.model_dir, 'main')
 
@@ -310,8 +370,6 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         meta_output = self.meta_model(meta_batch)
         tf.summary.scalar(name='losses/meta_output', tensor=tf.reshape(meta_output, []))
 
-        print(meta_label.shape)
-        print(meta_output.shape)
         meta_loss = tf.losses.absolute_difference(meta_output, meta_label)
         tf.summary.scalar(name='losses/meta_loss', tensor=meta_loss)
 
@@ -325,19 +383,6 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=tf.group([train_op, meta_train_op]),
                                           training_hooks=gradient_hook)
 
-    def combine_features(self, g_cur, g_pre, v_pre, v_cur):
-        flat_g_pre = self.layer_to_flat(g_pre)
-        flat_g_cur = self.layer_to_flat(g_cur)
-        flat_v_pre = self.layer_to_flat(v_pre)
-        flat_v_cur = self.layer_to_flat(v_cur)
-
-        combine_list = (tf.reduce_sum(tf.matmul(flat_g_pre, tf.square(flat_g_cur), transpose_a=True)),
-                        tf.reduce_mean(flat_g_pre),
-                        tf.reduce_mean(flat_g_cur),
-                        tf.reduce_mean(flat_v_pre))
-
-        return tf.reshape(tf.stack(combine_list), shape=[1, -1])
-
     def make_meta_labels(self, g_cur, g_joint, v_cur, v_pre, g_pre):
         flat_g_pre = self.layer_to_flat(g_pre)
         flat_g_cur = self.layer_to_flat(g_cur)
@@ -347,11 +392,10 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         flat_g_joint = self.layer_to_flat(g_joint)
 
         X = flat_g_joint-flat_g_cur
-        Y = tf.multiply(flat_g_pre, abs(flat_v_cur-flat_v_pre))
+        Y = tf.multiply(flat_g_pre, (flat_v_cur-flat_v_pre))
         X2 = tf.multiply(X, X)
         XY = tf.multiply(X, Y)
 
-        print(flat_g_joint)
         epsilon = 0
 
         alpha = tf.reduce_sum(X2)/(tf.reduce_sum(XY) + epsilon)

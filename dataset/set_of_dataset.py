@@ -8,6 +8,9 @@ class SetOfDataSet(object):
         self.n_task = n_task
         self.generate()
 
+    def set_list(self, list):
+        self.list = list
+
     def generate(self):
         pass
 

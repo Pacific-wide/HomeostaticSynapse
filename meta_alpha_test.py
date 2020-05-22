@@ -16,14 +16,14 @@ def main(argv):
     step = 0
     learning_rate = 5e-2
     n_epoch = 1
-    n_batch = 100
+    n_batch = 10
     n_task = 5
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
     n_grid = 7
 
     # model path
-    model_dir = "meta" + meta_model_dir
+    model_dir = "meta"
     np.random.seed(seed)
 
     # generate sequence dataset
@@ -53,7 +53,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "meta.txt"
+    filepath = "new" + meta_model_dir + ".txt"
     logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, step, n_grid)
 
 

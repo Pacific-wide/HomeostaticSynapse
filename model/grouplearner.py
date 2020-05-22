@@ -1,5 +1,4 @@
 from model import learner
-from optimizer import spec
 import numpy as np
 
 
@@ -56,6 +55,31 @@ class GroupEWCLearner(GroupLearner):
         for i in range(1, self.n_task):
             dataset = self.set_of_dataset.list[i]
             single_learner = learner.EWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config)
+            single_learner.train()
+
+            self.evaluate(i)
+
+        return self.eval_matrix
+
+
+class GroupCenterEWCLearner(GroupLearner):
+    def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
+        super(GroupCenterEWCLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+
+    def base_train(self):
+        base_dataset = self.set_of_dataset.list[0]
+        base_learner = learner.CenterBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config, 0)
+        base_learner.train()
+
+        result = base_learner.evaluate()
+        self.eval_matrix[0, 0] = result['accuracy']
+
+    def train_and_evaluate(self):
+        self.base_train()
+
+        for i in range(1, self.n_task):
+            dataset = self.set_of_dataset.list[i]
+            single_learner = learner.CenterEWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config, i)
             single_learner.train()
 
             self.evaluate(i)
@@ -124,6 +148,21 @@ class GroupMultiLearner(GroupInDepLearner):
         return self.eval_matrix
 
 
+class GroupIMMLearner(GroupLearner):
+    def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
+        super(GroupIMMLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+
+    def train_and_evaluate(self):
+        for i in range(self.n_task):
+            dataset = self.set_of_dataset.list[i]
+            imm_learner = learner.IMMEstimatorLearner(dataset, self.learning_specs[i], self.run_config, i)
+            imm_learner.train()
+
+            self.evaluate(i)
+
+        return self.eval_matrix
+
+
 class GroupMetaAlphaTrainLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config, meta_learning_spec, joint_learning_spec):
         super(GroupMetaAlphaTrainLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
@@ -140,10 +179,7 @@ class GroupMetaAlphaTrainLearner(GroupLearner):
 
         for i in range(0, self.n_task):
             joint_dataset = self.set_of_dataset.list[i:i+2]
-            cur_dataset = self.set_of_dataset.list[i+1]
-            joint_learner = learner.MultiEstimatorLearner(joint_dataset, self.joint_learning_spec, self.run_config)
-            joint_learner.train()
-            meta_learner = learner.MetaAlphaTrainEstimatorLearner(cur_dataset, self.learning_specs[i],
+            meta_learner = learner.MetaAlphaTrainEstimatorLearner(joint_dataset, self.learning_specs[i],
                                                                   self.meta_learning_spec, self.run_config)
             meta_learner.train()
 

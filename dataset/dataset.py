@@ -25,7 +25,7 @@ class Mnist(DataSet):
         self.row = 28
         self.d_in = self.row * self.row
         self.n_train = self.x_train.shape[0]
-        self.n_train = self.x_test.shape[0]
+        self.n_test = self.x_test.shape[0]
 
     def load(self):
         train, test = tf.keras.datasets.mnist.load_data()
