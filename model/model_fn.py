@@ -118,7 +118,7 @@ class IMMModelFNCreator(CenterBaseModelFNCreator):
     def average(self, v):
         average_v = []
         for item in v:
-            average_v.append(item / (self.i_task+1))
+            average_v.append(item / (self.i_task+2))
 
         return average_v
 
@@ -396,7 +396,7 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         X2 = tf.multiply(X, X)
         XY = tf.multiply(X, Y)
 
-        epsilon = 0
+        epsilon = 1e-3
 
         alpha = tf.reduce_sum(X2)/(tf.reduce_sum(XY) + epsilon)
         tf.summary.scalar(name='parameter/alpha', tensor=alpha)

@@ -12,12 +12,12 @@ from result import logger
 
 def main(argv):
     seed = int(argv[1])
-    meta_model_dir = str(argv[2])
+    meta_model_dir = "10step"
     step = 0
     learning_rate = 5e-2
     n_epoch = 1
-    n_batch = 10
-    n_task = 5
+    n_batch = 100
+    n_task = 10
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
     n_grid = 7

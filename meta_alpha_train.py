@@ -15,7 +15,7 @@ def main(argv):
     step = int(argv[2])
     # learning parameter
     n_epoch = 1
-    n_task = 20
+    n_task = 10
     n_batch = 100
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
@@ -23,7 +23,7 @@ def main(argv):
 
     np.random.seed(seed)
     # model path
-    model_dir = "meta_alpha_ep0"
+    model_dir = "meta_alpha_step"
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 

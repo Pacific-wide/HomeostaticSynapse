@@ -17,7 +17,7 @@ def main(argv):
     learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
-    n_task = 5
+    n_task = 10
     n_grid = 7
 
     learning_rates = learning_rate * np.ones(n_task)
