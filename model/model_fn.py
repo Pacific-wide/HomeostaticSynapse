@@ -284,9 +284,10 @@ class MetaModelFNCreator(ModelFNCreator):
 
 
 class MetaAlphaModelFNCreator(MetaModelFNCreator):
-    def __init__(self, features, labels, mode, learning_spec):
+    def __init__(self, features, labels, mode, learning_spec, i_task):
         super(MetaAlphaModelFNCreator, self).__init__(features, labels, mode, learning_spec)
         self.meta_model = net.MetaAlpha().build()
+        self.i_task = i_task
 
     def combine_meta_features(self, g_cur, g_pre, v_pre, v_cur):
         flat_g_pre = self.layer_to_flat(g_pre)
@@ -301,8 +302,9 @@ class MetaAlphaModelFNCreator(MetaModelFNCreator):
 
 
 class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
-    def __init__(self, features, labels, mode, learning_spec):
-        super(MetaAlphaTestModelFNCreator, self).__init__(features, labels, mode, learning_spec)
+    def __init__(self, features, labels, mode, learning_spec, i_task):
+        super(MetaAlphaTestModelFNCreator, self).__init__(features, labels, mode, learning_spec, i_task)
+        self.alpha = 1.0 * tf.pow(0.5, self.i_task)
 
     def create(self):
         # current gradient
@@ -318,7 +320,7 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
 
         tf.summary.scalar(name='losses/meta_output', tensor=tf.reshape(meta_output, shape=[]))
 
-        self.total_loss = self.loss + meta_output * self.add_meta_loss(g_pre, self.model.weights, v_pre)
+        self.total_loss = self.loss + self.alpha * meta_output * self.add_meta_loss(g_pre, self.model.weights, v_pre)
         tf.summary.scalar(name='losses/total_loss', tensor=tf.reshape(self.total_loss, shape=[]))
 
         total_gradient_computer = gc.ScopeGradientComputer(self.opt, self.total_loss, self.model.weights)

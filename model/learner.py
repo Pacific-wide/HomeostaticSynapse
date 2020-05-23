@@ -163,22 +163,24 @@ class MetaAlphaBaseEstimatorLearner(EstimatorLearner):
 
 
 class MetaAlphaWarmBaseEstimatorLearner(WarmStartEstimatorLearner):
-    def __init__(self, dataset, learning_spec, run_config, ws):
+    def __init__(self, dataset, learning_spec, run_config, ws, i_task):
         super(MetaAlphaWarmBaseEstimatorLearner, self).__init__(dataset, learning_spec, run_config, ws)
+        self.i_task = i_task
 
     def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.MetaAlphaModelFNCreator(features, labels, mode, self.learning_spec)
+        model_fn_creator = model_fn.MetaAlphaModelFNCreator(features, labels, mode, self.learning_spec, self.i_task)
 
         return model_fn_creator.create()
 
 
 class MetaAlphaWarmTestEstimatorLearner(WarmStartEstimatorLearner):
-    def __init__(self, dataset, learning_spec, run_config, ws):
+    def __init__(self, dataset, learning_spec, run_config, ws, i_task):
         super(MetaAlphaWarmTestEstimatorLearner, self).__init__(dataset, learning_spec, run_config, ws)
+        self.i_task = i_task
 
     def model_fn(self, features, labels, mode):
         model_fn_creator = model_fn.MetaAlphaTestModelFNCreator(features, labels, mode,
-                                                                self.learning_spec)
+                                                                self.learning_spec, self.i_task)
 
         return model_fn_creator.create()
 
