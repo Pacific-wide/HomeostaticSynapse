@@ -21,6 +21,7 @@ def main(argv):
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
     n_grid = 7
+    alpha = 0.3
 
     # model path
     model_dir = "meta"
@@ -40,7 +41,7 @@ def main(argv):
     for i in range(n_task):
         opt = op.SGDOptimizer(learning_rates[i]).build()
         opt_spec = spec.OptimizerSpec(opt, d_in)
-        learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec))
+        learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec, alpha))
 
     my_grouplearner = grouplearner.GroupMetaAlphaTestLearner(set_of_datasets, learning_specs, n_task, run_config, ws0, ws1)
 

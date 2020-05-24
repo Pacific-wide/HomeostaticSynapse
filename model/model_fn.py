@@ -304,7 +304,7 @@ class MetaAlphaModelFNCreator(MetaModelFNCreator):
 class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
     def __init__(self, features, labels, mode, learning_spec, i_task):
         super(MetaAlphaTestModelFNCreator, self).__init__(features, labels, mode, learning_spec, i_task)
-        self.alpha = 1.0 * tf.pow(0.5, self.i_task)
+        self.alpha = 1.0 * tf.pow(learning_spec.alpha, self.i_task)
 
     def create(self):
         # current gradient

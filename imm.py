@@ -26,7 +26,7 @@ def main(argv):
     model_dir = "imm"
     np.random.seed(seed)
 
-    set_of_datasets = sod.SetOfRandGridPermMnist(n_task, n_grid)
+    set_of_datasets = sod.SetOfRandPermCIFAR10(n_task)
     n_train = set_of_datasets.list[0].n_train
     d_in = set_of_datasets.list[0].d_in
 
@@ -47,7 +47,7 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = model_dir + "+1.txt"
+    filepath = model_dir + "_cifar.txt"
     logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, 0, n_grid)
 
 

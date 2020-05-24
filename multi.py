@@ -23,7 +23,7 @@ def main(argv):
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
-    model_dir = "indep"
+    model_dir = "multi"
     np.random.seed(seed)
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
@@ -37,7 +37,7 @@ def main(argv):
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, opt_spec, alpha))
 
-    my_grouplearner = grouplearner.GroupInDepLearner(set_of_datasets, learning_specs, n_task, run_config)
+    my_grouplearner = grouplearner.GroupMultiLearner(set_of_datasets, learning_specs, n_task, run_config)
 
     accuracy_matrix = my_grouplearner.train_and_evaluate()
 
