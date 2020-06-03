@@ -23,12 +23,12 @@ def main(argv):
 
     np.random.seed(seed)
     # model path
-    model_dir = "meta_alpha_step"
+    model_dir = "meta_cifar"
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
     # generate sequence dataset
-    set_of_datasets = sod.SetOfSwapGrid(n_task+1, n_grid, step=step)
+    set_of_datasets = sod.SetOfRandGridPermCIFAR10(n_task+1, n_grid)
     d_in = set_of_datasets.list[0].d_in
 
     for i in range(n_task):

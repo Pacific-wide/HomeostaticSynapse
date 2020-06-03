@@ -243,3 +243,22 @@ class SetOfRandPermCIFAR10(object):
         multi_dataset.y_train = np.concatenate(y_train_list, axis=0)
 
         return multi_dataset
+
+
+class SetOfRandRotaCIFAR10(SetOfDataSet):
+    def __init__(self, n_task):
+        super(SetOfRandRotaCIFAR10, self).__init__(n_task)
+
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(ds.RandRotaCIFAR10())
+
+
+class SetOfRandGridPermCIFAR10(SetOfDataSet):
+    def __init__(self, n_task, n_grid):
+        self.n_grid = n_grid
+        super(SetOfRandGridPermCIFAR10, self).__init__(n_task)
+
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(ds.RandGridPermCIFAR10(self.n_grid))

@@ -171,7 +171,7 @@ class GroupMetaAlphaTrainLearner(GroupLearner):
 
     def base_train(self):
         base_dataset = self.set_of_dataset.list[0]
-        base_learner = learner.MetaAlphaBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config)
+        base_learner = learner.MetaAlphaBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config, 0)
         base_learner.train()
 
     def train_and_evaluate(self):
@@ -180,7 +180,7 @@ class GroupMetaAlphaTrainLearner(GroupLearner):
         for i in range(0, self.n_task):
             joint_dataset = self.set_of_dataset.list[i:i+2]
             meta_learner = learner.MetaAlphaTrainEstimatorLearner(joint_dataset, self.learning_specs[i],
-                                                                  self.meta_learning_spec, self.run_config)
+                                                                  self.meta_learning_spec, self.run_config, i)
             meta_learner.train()
 
 

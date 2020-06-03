@@ -334,7 +334,7 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
 
 
 class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
-    def __init__(self, features, labels, mode, learning_spec, meta_learning_spec):
+    def __init__(self, features, labels, mode, learning_spec, meta_learning_spec, i_task):
         self.meta_learning_spec = meta_learning_spec
         self.meta_optimizer_spec = self.meta_learning_spec.optimizer_spec
         self.meta_opt = self.meta_optimizer_spec.optimizer
@@ -342,7 +342,7 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         _, self.cur_features, self.joint_features = features
         _, self.cur_labels, self.joint_labels = labels
 
-        super(MetaAlphaTrainModelFNCreator, self).__init__(self.cur_features, self.cur_labels, mode, learning_spec)
+        super(MetaAlphaTrainModelFNCreator, self).__init__(self.cur_features, self.cur_labels, mode, learning_spec, i_task)
 
         # joint gradient
         self.joint_logits = self.model(self.joint_features)

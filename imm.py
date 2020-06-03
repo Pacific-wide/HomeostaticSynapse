@@ -17,7 +17,7 @@ def main(argv):
     learning_rate = 5e-2
     n_epoch = 1
     n_batch = 100
-    n_task = 10
+    n_task = 5
     n_grid = 7
 
     learning_rates = learning_rate * np.ones(n_task)
@@ -28,6 +28,7 @@ def main(argv):
 
     set_of_datasets = sod.SetOfRandPermCIFAR10(n_task)
     n_train = set_of_datasets.list[0].n_train
+    print(n_train)
     d_in = set_of_datasets.list[0].d_in
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(n_train/n_batch))
@@ -47,7 +48,7 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = model_dir + "_cifar.txt"
+    filepath = "perm+" + model_dir + "_cifar.txt"
     logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, 0, n_grid)
 
 

@@ -12,7 +12,7 @@ from result import logger
 
 def main(argv):
     seed = int(argv[1])
-    meta_model_dir = "10step"
+    meta_model_dir = "meta_cifar"
     step = 0
     learning_rate = 5e-2
     n_epoch = 1
@@ -21,14 +21,14 @@ def main(argv):
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
     n_grid = 7
-    alpha = 0.3
+    alpha = float(argv[2])
 
     # model path
     model_dir = "meta"
     np.random.seed(seed)
 
     # generate sequence dataset
-    set_of_datasets = sod.SetOfRandGridPermMnist(n_task, n_grid)
+    set_of_datasets = sod.SetOfRandPermCIFAR10(n_task)
     d_in = set_of_datasets.list[0].d_in
     n_train = set_of_datasets.list[0].n_train
 
@@ -54,7 +54,7 @@ def main(argv):
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
 
-    filepath = "new" + meta_model_dir + ".txt"
+    filepath = "meta_cifar.txt"
     logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, step, n_grid)
 
 

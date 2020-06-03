@@ -328,9 +328,10 @@ class SVHN(DataSet):
 class CIFAR10(DataSet):
     def __init__(self):
         super(CIFAR10, self).__init__()
-        self.d_in = 32 * 32 * 3
+        self.row = 32
+        self.d_in = self.row * self.row * 3
         self.n_train = self.x_train.shape[0]
-        self.n_train = self.x_test.shape[0]
+        self.n_test = self.x_test.shape[0]
 
     def load(self):
         (self.x_train, self.y_train), (self.x_test, self.y_test) = tf.keras.datasets.cifar10.load_data()
@@ -338,8 +339,8 @@ class CIFAR10(DataSet):
     def normalize(self):
         self.x_train = self.x_train.astype(np.float32)  # (50000, 32, 32, 3)
         self.x_test = self.x_test.astype(np.float32)  # (10000, 32, 32, 3)
-        self.x_train = self.x_train / 255.0 # (50000, 3*1024)
-        self.x_test = self.x_test / 255.0 # (10000, 3*1024)
+        # self.x_train = self.x_train / 255.0 # (50000, 3*1024)
+        # self.x_test = self.x_test / 255.0 # (10000, 3*1024)
 
         self.y_train = self.y_train.astype(np.int64)
         self.y_test = self.y_test.astype(np.int64)
@@ -350,9 +351,43 @@ class CIFAR10(DataSet):
         self.x_train = self.x_train.reshape(self.x_train.shape[0], -1)
         self.x_test = self.x_test.reshape(self.x_test.shape[0], -1)
 
+        self.x_train = self.x_train / 255.0  # (50000, 3*1024)
+        self.x_test = self.x_test / 255.0 # (10000, 3*1024)
+
     def flatten_2D(self):
         self.x_train = self.x_train.reshape(self.x_train.shape[0], 1024, 3)
         self.x_test = self.x_test.reshape(self.x_test.shape[0], 1024, 3)
+
+
+class RotaCIFAR10(CIFAR10):
+    def __init__(self, angle):
+        super(RotaCIFAR10, self).__init__()
+        self.angle = angle
+        self.x_train = self.rotate(self.x_train)
+        self.x_test = self.rotate(self.x_test)
+
+        self.flatten()
+
+    def rotate(self, data):
+        shape = data.shape
+        result = np.zeros(shape)
+
+        for i in range(shape[0]):
+            for j in range(3):
+                map = Image.fromarray(data[i,:,:,j], mode='L')
+                rotated_map = map.rotate(self.angle)
+                result[i,:,:,j] = np.array(rotated_map)
+
+        result = result.astype(np.float32)
+
+        return result
+
+
+class RandRotaCIFAR10(RotaCIFAR10):
+    def __init__(self):
+        angle = np.random.randint(360)
+        print("Task " + ":" + str(angle))
+        super(RandRotaCIFAR10, self).__init__(angle)
 
 
 class PermCIFAR10(CIFAR10):

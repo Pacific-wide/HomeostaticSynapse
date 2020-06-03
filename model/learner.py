@@ -36,7 +36,7 @@ class EstimatorLearner(NNLearner):
 
     def eval_input_fn(self):
         tf_eval = tf.data.Dataset.from_tensor_slices((self.dataset.x_test, self.dataset.y_test))
-        tf_eval = tf_eval.batch(self.learning_spec.n_batch)
+        tf_eval = tf_eval.batch(10)
 
         return tf_eval
 
@@ -153,11 +153,12 @@ class FullBaseEstimatorLearner(BaseEstimatorLearner):
 
 
 class MetaAlphaBaseEstimatorLearner(EstimatorLearner):
-    def __init__(self, dataset, learning_spec, run_config):
+    def __init__(self, dataset, learning_spec, run_config, i_task):
         super(MetaAlphaBaseEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+        self.i_task = i_task
 
     def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.MetaAlphaModelFNCreator(features, labels, mode, self.learning_spec)
+        model_fn_creator = model_fn.MetaAlphaModelFNCreator(features, labels, mode, self.learning_spec, self.i_task)
 
         return model_fn_creator.create()
 
@@ -186,13 +187,16 @@ class MetaAlphaWarmTestEstimatorLearner(WarmStartEstimatorLearner):
 
 
 class MetaAlphaTrainEstimatorLearner(EstimatorLearner):
-    def __init__(self, dataset, learning_spec, meta_learning_spec, run_config):
+    def __init__(self, dataset, learning_spec, meta_learning_spec, run_config, i_task):
         super(MetaAlphaTrainEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
         self.meta_learning_spec = meta_learning_spec
+        self.i_task = i_task
 
     def model_fn(self, features, labels, mode):
         model_fn_creator = model_fn.MetaAlphaTrainModelFNCreator(features, labels, mode,
-                                                                 self.learning_spec, self.meta_learning_spec)
+                                                                 self.learning_spec,
+                                                                 self.meta_learning_spec,
+                                                                 self.i_task)
 
         return model_fn_creator.create()
 
