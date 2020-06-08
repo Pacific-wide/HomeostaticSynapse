@@ -339,8 +339,8 @@ class CIFAR10(DataSet):
     def normalize(self):
         self.x_train = self.x_train.astype(np.float32)  # (50000, 32, 32, 3)
         self.x_test = self.x_test.astype(np.float32)  # (10000, 32, 32, 3)
-        # self.x_train = self.x_train / 255.0 # (50000, 3*1024)
-        # self.x_test = self.x_test / 255.0 # (10000, 3*1024)
+        self.x_train = self.x_train / 255.0 # (50000, 3*1024)
+        self.x_test = self.x_test / 255.0 # (10000, 3*1024)
 
         self.y_train = self.y_train.astype(np.int64)
         self.y_test = self.y_test.astype(np.int64)
@@ -350,9 +350,6 @@ class CIFAR10(DataSet):
     def flatten(self):
         self.x_train = self.x_train.reshape(self.x_train.shape[0], -1)
         self.x_test = self.x_test.reshape(self.x_test.shape[0], -1)
-
-        self.x_train = self.x_train / 255.0  # (50000, 3*1024)
-        self.x_test = self.x_test / 255.0 # (10000, 3*1024)
 
     def flatten_2D(self):
         self.x_train = self.x_train.reshape(self.x_train.shape[0], 1024, 3)
