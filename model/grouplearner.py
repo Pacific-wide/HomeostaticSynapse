@@ -37,9 +37,9 @@ class GroupSingleLearner(GroupLearner):
         return self.eval_matrix
 
 
-class GroupEWCLearner(GroupLearner):
+class GroupOEWCLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
-        super(GroupEWCLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+        super(GroupOEWCLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
 
     def base_train(self):
         base_dataset = self.set_of_dataset.list[0]
@@ -54,7 +54,7 @@ class GroupEWCLearner(GroupLearner):
 
         for i in range(1, self.n_task):
             dataset = self.set_of_dataset.list[i]
-            single_learner = learner.EWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config)
+            single_learner = learner.OEWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config)
             single_learner.train()
 
             self.evaluate(i)
@@ -87,9 +87,9 @@ class GroupCenterEWCLearner(GroupLearner):
         return self.eval_matrix
 
 
-class GroupFullEWCLearner(GroupEWCLearner):
+class GroupEWCLearner(GroupOEWCLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
-        super(GroupFullEWCLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+        super(GroupEWCLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
 
     def base_train(self):
         base_dataset = self.set_of_dataset.list[0]
@@ -104,7 +104,7 @@ class GroupFullEWCLearner(GroupEWCLearner):
 
         for i in range(1, self.n_task):
             dataset = self.set_of_dataset.list[i]
-            single_learner = learner.FullEWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config, i)
+            single_learner = learner.EWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config, i)
             single_learner.train()
 
             self.evaluate(i)
@@ -164,10 +164,9 @@ class GroupIMMLearner(GroupLearner):
 
 
 class GroupMetaAlphaTrainLearner(GroupLearner):
-    def __init__(self, set_of_dataset, learning_specs, n_task, run_config, meta_learning_spec, joint_learning_spec):
+    def __init__(self, set_of_dataset, learning_specs, n_task, run_config, meta_learning_spec):
         super(GroupMetaAlphaTrainLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
         self.meta_learning_spec = meta_learning_spec
-        self.joint_learning_spec = joint_learning_spec
 
     def base_train(self):
         base_dataset = self.set_of_dataset.list[0]

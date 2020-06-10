@@ -12,7 +12,7 @@ class ModelFNCreator(object):
         self.learning_spec = learning_spec
         self.optimizer_spec = self.learning_spec.optimizer_spec
         self.model = net.Main(self.optimizer_spec.d_in).build()
-        print(features)
+        print(self.optimizer_spec.d_in)
         self.features = features
         self.logits = self.model(features)
         self.predictions = tf.argmax(self.logits, axis=1)
@@ -45,7 +45,7 @@ class ModelFNCreator(object):
     def compute_curvature(self, grads_and_vars):
         gradient_hook = []
         for i, grad_and_var in enumerate(grads_and_vars):
-            gradient_hook.append(hook.SquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch))
+            gradient_hook.append(hook.SquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch, self.learning_spec.n_train))
 
         return gradient_hook
 
@@ -92,7 +92,7 @@ class CenterBaseModelFNCreator(BaseModelFNCreator):
     def compute_curvature(self, grads_and_vars):
         gradient_hook = []
         for i, grad_and_var in enumerate(grads_and_vars):
-            gradient_hook.append(hook.CenterSquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch))
+            gradient_hook.append(hook.CenterSquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch, self.learning_spec.n_train))
 
         return gradient_hook
 
@@ -133,15 +133,16 @@ class FullBaseModelFNCreator(BaseModelFNCreator):
         gradient_hook = []
         for i, grad_and_var in enumerate(grads_and_vars):
             gradient_hook.append(hook.SequentialSquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch,
+                                                                               self.learning_spec.n_train,
                                                                                self.learning_spec.n_task,
                                                                                self.i_task))
 
         return gradient_hook
 
 
-class EWCModelFNCreator(ModelFNCreator):
+class OEWCModelFNCreator(ModelFNCreator):
     def __init__(self, features, labels, mode, learning_spec):
-        super(EWCModelFNCreator, self).__init__(features, labels, mode, learning_spec)
+        super(OEWCModelFNCreator, self).__init__(features, labels, mode, learning_spec)
         self.alpha = learning_spec.alpha
 
     def create(self):
@@ -202,9 +203,9 @@ class CenterEWCModelFNCreator(CenterBaseModelFNCreator):
         return ewc_loss
 
 
-class FullEWCModelFNCreator(FullBaseModelFNCreator):
+class EWCModelFNCreator(FullBaseModelFNCreator):
     def __init__(self, features, labels, mode, learning_spec, i_task):
-        super(FullEWCModelFNCreator, self).__init__(features, labels, mode, learning_spec, i_task)
+        super(EWCModelFNCreator, self).__init__(features, labels, mode, learning_spec, i_task)
         self.alpha = learning_spec.alpha
 
     def create(self):

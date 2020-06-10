@@ -1,10 +1,9 @@
-> ??A template README.md for code accompanying a Machine Learning paper
 
-# My Paper Title
 
-This repository is the official implementation of [My Paper Title](https://arxiv.org/abs/2030.12345). 
+# Title
 
-> ??Optional: include a graphic explaining your approach/main result, bibtex entry, link to demos, blog posts and tutorials
+This repository is the official implementation of Homeostasis-Inspired Continual Learning: Learning to Control Structural Regularization
+
 
 ## Requirements
 
@@ -14,49 +13,54 @@ To install requirements:
 pip install -r requirements.txt
 ```
 
-> ??Describe how to set up the environment, e.g. pip/conda/docker commands, download datasets, etc...
+via Anaconda
 
 ## Training
 
-To train the model(s) in the paper, run this command:
+To train the Homeostatic Meta-Model in the paper, run this command:
 
 ```train
-python train.py --input-data <path_to_data> --alpha 10 --beta 20
+python meta_alpha_train.py --data MNISTBPERM --n_task 30 --seed 0
 ```
 
-> ??Describe how to train the models, with example commands on how to train the models in your paper, including the full training procedure and appropriate hyperparameters.
 
 ## Evaluation
 
-To evaluate my model on ImageNet, run:
+To evaluate Homeostatic Meta-Model on MNIST-BPERM, run:
 
 ```eval
-python eval.py --model-file mymodel.pth --benchmark imagenet
+python meta_alpha_test.py --data MNISTPERM
 ```
 
 > ??Describe how to evaluate the trained models on benchmarks reported in the paper, give commands that produce the results (section below).
 
-## Pre-trained Models
+## Alternativv Models
 
-You can download pretrained models here:
+You can evaluate alternative methods
 
-- [My awesome model](https://drive.google.com/mymodel.pth) trained on ImageNet using parameters x,y,z. 
 
-> ??Give a link to where/how the pretrained models can be downloaded and how they were trained (if applicable).  Alternatively you can have an additional column in your results table with a link to the models.
+- Single : a single learner based on SGD for a sequence of tasks
+- InDep : a dedicated (independent) learner based on SGD for each task
+- EWC : Elastic Weight Consolidation (regularized with the dedicated Fisher information for each task) [1]
+- OEWC : Online Elastic Weight Consolidation (regularized with the accumulated Fisher information) [2]
+- IMM  : Incremental Moment Matching with a weight transfer method [3]
+- Multi-task : allowed to access all the tasks (violation of strict CL scenario).
 
 ## Results
 
 Our model achieves the following performance on :
 
-### [Image Classification on ImageNet](https://paperswithcode.com/sota/image-classification-on-imagenet)
+### MNIST-PERM Dataset
 
 | Model name         | Top 1 Accuracy  | Top 5 Accuracy |
 | ------------------ |---------------- | -------------- |
 | My awesome model   |     85%         |      95%       |
 
-> ??Include a table of results from your paper, and link back to the leaderboard for clarity and context. If your main result is a figure, include that figure and link to the command or notebook to reproduce it. 
 
+### References
 
-## Contributing
+[1] Kirkpatrick, James, et al. "Overcoming catastrophic forgetting in neural networks." Proceedings of the national academy of sciences 114.13 (2017): 3521-3526.
 
-> ??Pick a licence and describe how to contribute to your code repository. 
+[2] Schwarz, Jonathan, et al. "Progress & compress: A scalable framework for continual learning." arXiv preprint arXiv:1805.06370 (2018).
+
+[3] Lee, Sang-Woo, et al. "Overcoming catastrophic forgetting by incremental moment matching." Advances in neural information processing systems. 2017.

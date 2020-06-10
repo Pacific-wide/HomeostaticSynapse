@@ -3,12 +3,13 @@ import numpy as np
 
 
 class GradientHook(tf.train.SessionRunHook):
-    def __init__(self, grad_and_var, n_batch):
+    def __init__(self, grad_and_var, n_batch, n_train):
         self.gradients = grad_and_var[0]
         self.variable = grad_and_var[1]
         self.name = self.variable.name[5:-2]
         self.n_batch = n_batch
-        self.period = int(50000 / self.n_batch)
+        self.n_train = n_train
+        self.period = int(n_train / self.n_batch)
 
         self.global_step = tf.train.get_global_step()
         self.condition = tf.equal(self.global_step % 600, 0)
@@ -24,8 +25,8 @@ class GradientHook(tf.train.SessionRunHook):
 
 
 class SquareAccumulationGradientHook(GradientHook):
-    def __init__(self, grad_and_var, n_batch):
-        super(SquareAccumulationGradientHook, self).__init__(grad_and_var, n_batch)
+    def __init__(self, grad_and_var, n_batch, n_train):
+        super(SquareAccumulationGradientHook, self).__init__(grad_and_var, n_batch, n_train)
 
     def begin(self):
         self.sum_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('fisher/' + self.name))
@@ -40,8 +41,8 @@ class SquareAccumulationGradientHook(GradientHook):
 
 
 class CenterSquareAccumulationGradientHook(SquareAccumulationGradientHook):
-    def __init__(self, grad_and_var, n_batch):
-        super(CenterSquareAccumulationGradientHook, self).__init__(grad_and_var, n_batch)
+    def __init__(self, grad_and_var, n_batch, n_train):
+        super(CenterSquareAccumulationGradientHook, self).__init__(grad_and_var, n_batch, n_train)
 
     def begin(self):
         self.sum_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('fisher/' + self.name))
@@ -69,8 +70,8 @@ class CenterSquareAccumulationGradientHook(SquareAccumulationGradientHook):
 
 
 class SequentialSquareAccumulationGradientHook(SquareAccumulationGradientHook):
-    def __init__(self, grad_and_var, n_batch, n_task, i_task):
-        super(SequentialSquareAccumulationGradientHook, self).__init__(grad_and_var, n_batch)
+    def __init__(self, grad_and_var, n_batch, n_train, n_task, i_task):
+        super(SequentialSquareAccumulationGradientHook, self).__init__(grad_and_var, n_batch, n_train)
         self.n_task = n_task
         self.i_task = i_task
         self.fisher = []

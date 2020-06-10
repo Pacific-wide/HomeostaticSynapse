@@ -60,17 +60,17 @@ class SingleEstimatorLearner(EstimatorLearner):
         return model_fn_creator.create()
 
 
-class EWCEstimatorLearner(EstimatorLearner):
+class OEWCEstimatorLearner(EstimatorLearner):
     def __init__(self, dataset, learning_spec, run_config):
-        super(EWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+        super(OEWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
 
     def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.EWCModelFNCreator(features, labels, mode, self.learning_spec)
+        model_fn_creator = model_fn.OEWCModelFNCreator(features, labels, mode, self.learning_spec)
 
         return model_fn_creator.create()
 
 
-class CenterEWCEstimatorLearner(EWCEstimatorLearner):
+class CenterEWCEstimatorLearner(OEWCEstimatorLearner):
     def __init__(self, dataset, learning_spec, run_config, i_task):
         super(CenterEWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
         self.i_task = i_task
@@ -81,13 +81,13 @@ class CenterEWCEstimatorLearner(EWCEstimatorLearner):
         return model_fn_creator.create()
 
 
-class FullEWCEstimatorLearner(EWCEstimatorLearner):
+class EWCEstimatorLearner(OEWCEstimatorLearner):
     def __init__(self, dataset, learning_spec, run_config, i_task):
-        super(FullEWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+        super(EWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
         self.i_task = i_task
 
     def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.FullEWCModelFNCreator(features, labels, mode, self.learning_spec, self.i_task)
+        model_fn_creator = model_fn.EWCModelFNCreator(features, labels, mode, self.learning_spec, self.i_task)
 
         return model_fn_creator.create()
 

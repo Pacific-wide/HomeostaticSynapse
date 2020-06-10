@@ -7,6 +7,8 @@ from optimizer import optimizer as op
 from optimizer import spec
 
 
+
+
 def main(argv):
     # learning rate
     learning_rate = 5e-2
@@ -23,7 +25,7 @@ def main(argv):
 
     np.random.seed(seed)
     # model path
-    model_dir = "meta_cifar"
+    model_dir = "Homeostatic"
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
 
@@ -40,13 +42,8 @@ def main(argv):
     meta_opt_spec = spec.OptimizerSpec(meta_opt, d_in)
     meta_learning_spec = spec.LearningSpec(n_epoch, n_batch, n_task, model_dir, meta_opt_spec)
 
-    joint_opt = op.SGDOptimizer(0).build()
-    joint_opt_spec = spec.OptimizerSpec(joint_opt, d_in)
-    joint_learning_spec = spec.LearningSpec(1, set_of_datasets.list[0].n_train, 2, model_dir, joint_opt_spec)
-
     my_grouplearner = grouplearner.GroupMetaAlphaTrainLearner(set_of_datasets, learning_specs, n_task, run_config,
-                                                              meta_learning_spec,
-                                                              joint_learning_spec)
+                                                              meta_learning_spec)
     my_grouplearner.train_and_evaluate()
 
 

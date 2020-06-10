@@ -12,7 +12,7 @@ from result import logger
 
 def main(argv):
     seed = int(argv[1])
-    meta_model_dir = "meta_cifar"
+    meta_model_dir = "Homeostatic"
     step = 0
     learning_rate = 5e-2
     n_epoch = 1
