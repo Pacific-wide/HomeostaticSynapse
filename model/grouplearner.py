@@ -173,7 +173,7 @@ class GroupHMTrainLearner(GroupLearner):
         base_learner = learner.MetaAlphaBaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config, 0)
         base_learner.train()
 
-    def train_and_evaluate(self):
+    def train(self):
         self.base_train()
 
         for i in range(0, self.n_task):

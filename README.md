@@ -2,7 +2,7 @@
 
 # Title
 
-This repository is the official implementation of Homeostasis-Inspired Continual Learning: Learning to Control Structural Regularization
+This repository is the official implementation of Homeostasis-Inspired Continual Learning: Learning to Control Structural Regularization.
 
 
 ## Requirements
@@ -13,7 +13,7 @@ To install requirements:
 pip install -r requirements.txt
 ```
 
-via Anaconda
+> It is recommended to use the Anaconda
 
 ## Training Manually
 
@@ -23,13 +23,11 @@ To train the Homeostatic Meta-Model (HM) in the paper, run this command:
 python meta_alpha_train.py --data MNISTBPERM --n_task 30 --seed 20
 ```
 
-or
+or Execute the pre-established shell script:
 
 ```
 ./run.sh
 ```
-
-> Execute the pre-established shell script
 
 ## Evaluation
 
@@ -39,7 +37,7 @@ To evaluate Homeostatic Meta-Model on MNIST-BPERM, run:
 python meta_alpha_test.py --data MNISTPERM
 ```
 
-> Using homeostatic meta-trained model, you can evaluate the performance on continual learning
+> Using homeostatic meta-trained model, you can evaluate the performance on continual learning.
 
 ## Alternative Models
 
@@ -50,13 +48,13 @@ You can also evaluate alternative models for comparison
 - EWC : Elastic Weight Consolidation (regularized with the dedicated Fisher information for each task) [1]
 - OEWC : Online Elastic Weight Consolidation (regularized with the accumulated Fisher information) [2]
 - IMM  : Incremental Moment Matching with a weight transfer method [3]
-- Multi : Multi-task learning (allowed to access all the tasks, violation of strict CL scenario).
+- Multi : Multi-task learning (allowed to access all the tasks, violation of strict CL scenario)
 
 ```train
-python train.py --data MNISTBPERM --n_task 30 --seed 0 --model InDep
+python train.py --model InDep --data MNISTBPERM --n_task 30 --seed 0 
 ```
 
-> Use "--model" argument with above model names 
+> Use "--model" argument with above model names to train other alternatives
 
 ## Results
 

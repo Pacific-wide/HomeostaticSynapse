@@ -287,7 +287,7 @@ class MetaModelFNCreator(ModelFNCreator):
 class MetaAlphaModelFNCreator(MetaModelFNCreator):
     def __init__(self, features, labels, mode, learning_spec, i_task):
         super(MetaAlphaModelFNCreator, self).__init__(features, labels, mode, learning_spec)
-        self.meta_model = net.MetaAlpha().build()
+        self.meta_model = net.HM().build()
         self.i_task = i_task
 
     def combine_meta_features(self, g_cur, g_pre, v_pre, v_cur):

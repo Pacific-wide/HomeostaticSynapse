@@ -38,14 +38,9 @@ class Main(FCN):
         super(Main, self).__init__("main", 2, d_in, 10, 50)
 
 
-class Meta(FCN):
+class HM(FCN):
     def __init__(self):
-        super(Meta, self).__init__("meta", 2, 2, 1, 50)
-
-
-class MetaAlpha(FCN):
-    def __init__(self):
-        super(MetaAlpha, self).__init__("meta", 2, 2, 1, 30)
+        super(HM, self).__init__("meta", 2, 2, 1, 30)
 
 
 class SeparateMain(FCN):

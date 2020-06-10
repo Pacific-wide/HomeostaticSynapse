@@ -8,7 +8,6 @@ from optimizer import optimizer as op
 from optimizer import spec
 
 
-
 def main(argv):
     parser = argparse.ArgumentParser(description='Homeostatic Synapse')
 
@@ -39,7 +38,7 @@ def main(argv):
     meta_learning_rate = args.meta_lr
     n_epoch = args.n_epoch
     n_batch = args.batch_size
-    n_task = args.n_task + 1 # Extra task for base training
+    n_task = args.n_task
     n_block = args.n_block
     np.random.seed(seed)
 
@@ -47,11 +46,12 @@ def main(argv):
 
     run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(60000/n_batch))
     DataClass = getattr(importlib.import_module('dataset.set_of_dataset'), 'SetOfRand' + args.data)
+
     # generate sequence dataset
     if args.data[-5:] == 'BPERM':
-        set_of_datasets = DataClass(n_task, n_block)        # For Block-wise Permutation
+        set_of_datasets = DataClass(n_task+1, n_block)        # For Block-wise Permutation
     else:
-        set_of_datasets = DataClass(n_task)
+        set_of_datasets = DataClass(n_task+1)
 
     d_in = set_of_datasets.list[0].d_in
     n_train = set_of_datasets.list[0].n_train
@@ -70,7 +70,7 @@ def main(argv):
 
     my_grouplearner = grouplearner.GroupHMTrainLearner(set_of_datasets, learning_specs, n_task, run_config,
                                                        meta_learning_spec)
-    my_grouplearner.train_and_evaluate()
+    my_grouplearner.train()
 
 
 if __name__ == '__main__':
