@@ -15,14 +15,21 @@ pip install -r requirements.txt
 
 via Anaconda
 
-## Training
+## Training Manually
 
-To train the Homeostatic Meta-Model in the paper, run this command:
+To train the Homeostatic Meta-Model (HM) in the paper, run this command:
 
 ```train
-python meta_alpha_train.py --data MNISTBPERM --n_task 30 --seed 0
+python meta_alpha_train.py --data MNISTBPERM --n_task 30 --seed 20
 ```
 
+or
+
+```
+./run.sh
+```
+
+> Execute the pre-established shell script
 
 ## Evaluation
 
@@ -32,29 +39,40 @@ To evaluate Homeostatic Meta-Model on MNIST-BPERM, run:
 python meta_alpha_test.py --data MNISTPERM
 ```
 
-> ??Describe how to evaluate the trained models on benchmarks reported in the paper, give commands that produce the results (section below).
+> Using homeostatic meta-trained model, you can evaluate the performance on continual learning
 
-## Alternativv Models
+## Alternative Models
 
-You can evaluate alternative methods
-
+You can also evaluate alternative models for comparison
 
 - Single : a single learner based on SGD for a sequence of tasks
 - InDep : a dedicated (independent) learner based on SGD for each task
 - EWC : Elastic Weight Consolidation (regularized with the dedicated Fisher information for each task) [1]
 - OEWC : Online Elastic Weight Consolidation (regularized with the accumulated Fisher information) [2]
 - IMM  : Incremental Moment Matching with a weight transfer method [3]
-- Multi-task : allowed to access all the tasks (violation of strict CL scenario).
+- Multi : Multi-task learning (allowed to access all the tasks, violation of strict CL scenario).
+
+```train
+python train.py --data MNISTBPERM --n_task 30 --seed 0 --model InDep
+```
+
+> Use "--model" argument with above model names 
 
 ## Results
 
-Our model achieves the following performance on :
+Our model achieves the following performance on the sequence of 10 MNIST-PERM tasks:
 
 ### MNIST-PERM Dataset
 
-| Model name         | Top 1 Accuracy  | Top 5 Accuracy |
-| ------------------ |---------------- | -------------- |
-| My awesome model   |     85%         |      95%       |
+| Model   | Average Accuracy | Average Forgetting |
+| --------|------------------| ------------------ |
+| Single  |   59.62% +- 2.9  |    37.29 +-3.2     |
+| OEWC    |   62.18% +- 0.7  |    32.33 +-3.4     |
+| EWC     |   63.92% +- 6.6  |    31.91 +-3.2     |
+| HM(ours)|   69.36% +- 6.6  |    22.64 +-2.8     |
+| Multi   |   86.09% +- 0.1  |        N/A         |
+| Indep   |   92.24% +- 0.7  |        N/A         |
+
 
 
 ### References

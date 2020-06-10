@@ -163,9 +163,9 @@ class GroupIMMLearner(GroupLearner):
         return self.eval_matrix
 
 
-class GroupMetaAlphaTrainLearner(GroupLearner):
+class GroupHMTrainLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config, meta_learning_spec):
-        super(GroupMetaAlphaTrainLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+        super(GroupHMTrainLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
         self.meta_learning_spec = meta_learning_spec
 
     def base_train(self):
@@ -183,9 +183,9 @@ class GroupMetaAlphaTrainLearner(GroupLearner):
             meta_learner.train()
 
 
-class GroupMetaAlphaTestLearner(GroupLearner):
+class GroupHMTestLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config, ws0, ws1):
-        super(GroupMetaAlphaTestLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+        super(GroupHMTestLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
         self.ws0 = ws0
         self.ws1 = ws1
 
