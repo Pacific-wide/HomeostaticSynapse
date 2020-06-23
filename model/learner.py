@@ -1,5 +1,6 @@
 import abc
 import tensorflow as tf
+import numpy as np
 from model import model_fn
 
 
@@ -107,6 +108,41 @@ class MultiEstimatorLearner(EstimatorLearner):
         model_fn_creator = model_fn.SingleModelFNCreator(features, labels, mode, self.learning_spec)
 
         return model_fn_creator.create()
+
+
+class FedEstimatorLearner(EstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config):
+        super(FedEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+        self.tf_train_list = []
+
+    def train_input_fn(self):
+        tf_train = self.combine_dataset(self.dataset)
+        tf_train = tf_train.repeat(self.learning_spec.n_epoch).batch(self.learning_spec.n_batch)
+
+        return tf_train
+
+    def model_fn(self, features, labels, mode):
+        model_fn_creator = model_fn.SingleModelFNCreator(features, labels, mode, self.learning_spec)
+
+        return model_fn_creator.create()
+
+    def combine_dataset(self, dataset):
+        x_batchs = []
+        y_batchs = []
+        n_batch = self.learning_spec.n_batch
+
+        for data in dataset:
+            for i in range(int(self.learning_spec.n_train/n_batch)):
+                x_batchs.append(data.x_train[n_batch*i:n_batch*(i+1)])
+                y_batchs.append(data.y_train[n_batch*i:n_batch*(i+1)])
+
+        np_x_train = np.concatenate(x_batchs, axis=0)
+        np_y_train = np.concatenate(y_batchs, axis=0)
+
+        print(np_x_train.shape)
+        print(np_y_train.shape)
+
+        return tf.data.Dataset.from_tensor_slices((np_x_train, np_y_train))
 
 
 class IMMEstimatorLearner(EstimatorLearner):

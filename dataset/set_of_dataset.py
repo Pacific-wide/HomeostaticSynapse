@@ -8,8 +8,8 @@ class SetOfDataSet(object):
         self.n_task = n_task
         self.generate()
 
-    def set_list(self, list):
-        self.list = list
+    def set_list(self, _list):
+        self.list = _list
 
     def generate(self):
         pass
@@ -21,7 +21,7 @@ class SetOfDataSet(object):
             x_train_list.append(self.list[i].x_train)
             y_train_list.append(self.list[i].y_train)
 
-        multi_dataset = ds.RandMNISTPERM()
+        multi_dataset = ds.MNIST()
         multi_dataset.x_train = np.concatenate(x_train_list, axis=0)
         multi_dataset.y_train = np.concatenate(y_train_list, axis=0)
 

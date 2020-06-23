@@ -20,7 +20,6 @@ def main(argv):
     # data parameters
     parser.add_argument('--data', type=str, default='MNISTPERM', help='Type of Dataset')
 
-
     # optimizer parameters
     parser.add_argument('--n_epoch', type=int, default=1, help='Number of epochs per task')
     parser.add_argument('--batch_size', type=int, default=100, help='batch size')
