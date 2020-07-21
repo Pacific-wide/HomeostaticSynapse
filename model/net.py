@@ -37,7 +37,6 @@ class Main(FCN):
     def __init__(self, d_in):
         super(Main, self).__init__("main", 2, d_in, 10, 50)
 
-
 class HM(FCN):
     def __init__(self):
         super(HM, self).__init__("meta", 2, 2, 1, 30)
@@ -60,25 +59,33 @@ class MultiFCN(FCN):
 
 
 class BaseCNN(Network):
-    def __init__(self, prefix, n_layer, n_input, n_output, n_unit):
+    def __init__(self, prefix, n_layer, n_input, n_output, n_filter, n_channel):
         super(BaseCNN, self).__init__(prefix, n_layer)
+        self.n_filter = n_filter
+        self.n_channel = n_channel
+        self.layer_list = self.make_layer_list(n_layer, n_input, n_output)
 
-        self.layer_list = self.make_layer_list(n_input, n_output, n_unit)
-
-    def make_layer_list(self, n_layer, n_output, n_unit):
+    def make_layer_list(self, n_layer, n_input, n_output):
         layers = []
-        layers.append(tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)))
+        layers.append(tf.keras.layers.Conv2D(self.n_filter, kernel_size=(3, 3), activation='relu',
+                                             input_shape=(n_input, n_input, self.n_channel)))
 
         for i in range(n_layer):
-            layer_name = self.prefix + '/conv' + str(i + 1)
-            layers.append(tf.keras.layers.MaxPooling2D((2, 2), layer_name=layer_name))
-            layers.append(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', layer_name=layer_name))
+            layers.append(tf.keras.layers.MaxPooling2D((2, 2)))
+            layers.append(tf.keras.layers.Conv2D(self.n_filter, kernel_size=(3, 3), activation='relu'))
 
-        layers.append(tf.keras.layers.Dense(n_output, name=self.prefix + '/dense' + str(n_layer + 1)))
+        layers.append(tf.keras.layers.Flatten())
+        layers.append(tf.keras.layers.Dense(256))
+        layers.append(tf.keras.layers.Dense(n_output))
 
         return layers
 
     def build(self):
         return tf.keras.Sequential(self.layer_list)
+
+
+class MainCNN(BaseCNN):
+    def __init__(self):
+        super(MainCNN, self).__init__("main", 1, 32, 10, 32, 3)
 
 

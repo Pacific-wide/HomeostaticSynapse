@@ -43,6 +43,10 @@ class MNIST(DataSet):
         self.y_train = self.y_train.astype(np.int64)  # (60000, )
         self.y_test = self.y_test.astype(np.int64)  # (10000, )
 
+    def reshape3D(self):
+        self.x_train = self.x_train.reshape(self.x_train.shape[0], self.row, self.row, 1)  # (60000, 28, 28 ,1)
+        self.x_test = self.x_test.reshape(self.x_test.shape[0], self.row, self.row, 1)  # (10000, 28, 28 ,1)
+
 
 class SwapMnist(MNIST):
     def __init__(self, perm):
@@ -308,8 +312,8 @@ class CIFAR10(DataSet):
     def normalize(self):
         self.x_train = self.x_train.astype(np.float32)  # (50000, 32, 32, 3)
         self.x_test = self.x_test.astype(np.float32)  # (10000, 32, 32, 3)
-        self.x_train = self.x_train / 255.0 # (50000, 3*1024)
-        self.x_test = self.x_test / 255.0 # (10000, 3*1024)
+        self.x_train = self.x_train / 255.0
+        self.x_test = self.x_test / 255.0
 
         self.y_train = self.y_train.astype(np.int64)
         self.y_test = self.y_test.astype(np.int64)
@@ -323,6 +327,10 @@ class CIFAR10(DataSet):
     def flatten_2D(self):
         self.x_train = self.x_train.reshape(self.x_train.shape[0], 1024, 3)
         self.x_test = self.x_test.reshape(self.x_test.shape[0], 1024, 3)
+
+    def reshape3D(self):
+        self.x_train = self.x_train.reshape(self.x_train.shape[0], self.row, self.row, 3)
+        self.x_test = self.x_test.reshape(self.x_test.shape[0], self.row, self.row, 3)
 
 
 class CIFAR10ROTA(CIFAR10):

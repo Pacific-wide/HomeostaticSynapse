@@ -33,6 +33,8 @@ class EstimatorLearner(NNLearner):
         tf_train = tf.data.Dataset.from_tensor_slices((self.dataset.x_train, self.dataset.y_train))
         tf_train = tf_train.repeat(self.learning_spec.n_epoch).batch(self.learning_spec.n_batch)
 
+        print(tf_train)
+
         return tf_train
 
     def eval_input_fn(self):
@@ -118,7 +120,6 @@ class FedEstimatorLearner(EstimatorLearner):
     def train_input_fn(self):
         tf_train = self.combine_dataset(self.dataset)
         tf_train = tf_train.repeat(self.learning_spec.n_epoch).batch(self.learning_spec.n_batch)
-
         return tf_train
 
     def model_fn(self, features, labels, mode):
@@ -131,8 +132,8 @@ class FedEstimatorLearner(EstimatorLearner):
         y_batchs = []
         n_batch = self.learning_spec.n_batch
 
-        for data in dataset:
-            for i in range(int(self.learning_spec.n_train/n_batch)):
+        for i in range(int(self.learning_spec.n_train/n_batch)):
+            for data in dataset:
                 x_batchs.append(data.x_train[n_batch*i:n_batch*(i+1)])
                 y_batchs.append(data.y_train[n_batch*i:n_batch*(i+1)])
 

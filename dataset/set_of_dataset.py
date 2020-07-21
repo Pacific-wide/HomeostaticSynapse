@@ -60,10 +60,13 @@ class SetOfMNISTPlusMNISTBPERM(SetOfDataSet):
         super(SetOfMNISTPlusMNISTBPERM, self).__init__(n_task)
 
     def generate(self):
-        self.list.append(ds.MNIST())
-        self.list[0].flatten()
+        first_dataset = ds.MNIST()
+        first_dataset.reshape3D()
+        self.list.append(first_dataset)
         for i in range(1, self.n_task):
-            self.list.append(ds.RandMNISTBPERM(self.n_grid))
+            temp_dataset = ds.RandMNISTBPERM(self.n_grid)
+            temp_dataset.reshape3D()
+            self.list.append(temp_dataset)
 
 
 class SetOfCIFAR10PlusCIFAR10BPERM(SetOfDataSet):
@@ -72,10 +75,13 @@ class SetOfCIFAR10PlusCIFAR10BPERM(SetOfDataSet):
         super(SetOfCIFAR10PlusCIFAR10BPERM, self).__init__(n_task)
 
     def generate(self):
-        self.list.append(ds.CIFAR10())
-        self.list[0].flatten()
+        first_dataset = ds.CIFAR10()
+        first_dataset.reshape3D()
+        self.list.append(first_dataset)
         for i in range(1, self.n_task):
-            self.list.append(ds.RandCIFAR10BPERM(self.n_grid))
+            temp_dataset = ds.RandCIFAR10BPERM(self.n_grid)
+            temp_dataset.reshape3D()
+            self.list.append(temp_dataset)
 
 
 class SetOfMNISTPlusSwapMNISTBPERM(SetOfDataSet):

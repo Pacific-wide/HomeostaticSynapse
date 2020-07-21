@@ -18,7 +18,7 @@ def main(argv):
     parser.add_argument('--alpha', type=float, default=1.0, help='Intensity of Regularization')
 
     # data parameters
-    parser.add_argument('--data', type=str, default='MNISTPERM', help='Type of Dataset')
+    parser.add_argument('--data', type=str, default='RandMNISTPERM', help='Type of Dataset')
 
     # optimizer parameters
     parser.add_argument('--n_epoch', type=int, default=1, help='Number of epochs per task')
@@ -43,7 +43,7 @@ def main(argv):
 
     model_dir = args.model
     np.random.seed(seed)
-    DataClass = getattr(importlib.import_module('dataset.set_of_dataset'), 'SetOfRand' + args.data)
+    DataClass = getattr(importlib.import_module('dataset.set_of_dataset'), 'SetOf' + args.data)
 
     if args.data[-5:] == 'BPERM':
         set_of_datasets = DataClass(n_task, n_block)        # For Block-wise Permutation
@@ -74,7 +74,7 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = "result/" + model_dir + ".txt"
+    filepath = "result/" + model_dir + str(n_batch) + str(seed) + ".txt"
     logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, 0, n_block)
 
 

@@ -12,14 +12,21 @@ class ModelFNCreator(object):
         self.learning_spec = learning_spec
         self.optimizer_spec = self.learning_spec.optimizer_spec
         self.model = net.Main(self.optimizer_spec.d_in).build()
-        print(self.optimizer_spec.d_in)
+        # self.model = net.MainCNN().build()
+        self.model.summary()
         self.features = features
         self.logits = self.model(features)
         self.predictions = tf.argmax(self.logits, axis=1)
         self.labels = labels
         self.mode = mode
 
+        print(self.logits)
+        print(self.labels)
+        print(self.predictions)
+
         self.one_hot_labels = tf.one_hot(self.labels, 10)
+        print(self.one_hot_labels)
+
         self.loss = ls.SoftMaxCrossEntropyLoss(self.logits, self.one_hot_labels).compute()
         self.opt = self.optimizer_spec.optimizer
 
