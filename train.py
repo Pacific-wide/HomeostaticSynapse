@@ -41,6 +41,12 @@ def main(argv):
     n_task = args.n_task
     n_block = args.n_block
 
+    ratio = n_batch / 100.0
+    learning_rate = learning_rate * ratio
+    print("ratio: ", ratio)
+    print("n_batch: ", n_batch)
+    print("learning_rate: ", learning_rate)
+
     model_dir = args.model
     np.random.seed(seed)
     DataClass = getattr(importlib.import_module('dataset.set_of_dataset'), 'SetOf' + args.data)
@@ -74,7 +80,7 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = "result/" + model_dir + str(n_batch) + str(seed) + ".txt"
+    filepath = "fed_result/" + model_dir + str(n_batch) + " "+ str(seed) + ".txt"
     logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, 0, n_block)
 
 
