@@ -104,9 +104,36 @@ class GroupEWCLearner(GroupOEWCLearner):
 
         for i in range(1, self.n_task):
             dataset = self.set_of_dataset.list[i]
-            single_learner = learner.EWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config, i)
+            single_learner = learner.OEWCEstimatorLearner(dataset, self.learning_specs[i], self.run_config, i)
             single_learner.train()
 
+            self.evaluate(i)
+
+        return self.eval_matrix
+
+
+class GroupFedOEWCLearner(GroupLearner):
+    def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
+        super(GroupFedOEWCLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+        self.n_fed_batch = self.learning_specs[0].n_fed_batch
+        self.n_round = int(self.learning_specs[0].n_train / self.n_fed_batch)
+        self.n_fed_task = self.n_task * self.n_round
+        self.set_of_dataset.split(self.n_round, self.n_fed_batch)
+
+    def base_train(self):
+        base_dataset = self.set_of_dataset.fed_list[0]
+        base_learner = learner.BaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config)
+        base_learner.train()
+
+    def train_and_evaluate(self):
+        self.base_train()
+
+        for i in range(1, self.n_fed_task):
+            dataset = self.set_of_dataset.fed_list[i]
+            single_learner = learner.OEWCEstimatorLearner(dataset, self.learning_specs[0], self.run_config)
+            single_learner.train()
+
+        for i in range(self.n_task):
             self.evaluate(i)
 
         return self.eval_matrix

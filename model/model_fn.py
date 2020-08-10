@@ -52,7 +52,7 @@ class ModelFNCreator(object):
     def compute_curvature(self, grads_and_vars):
         gradient_hook = []
         for i, grad_and_var in enumerate(grads_and_vars):
-            gradient_hook.append(hook.SquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch, self.learning_spec.n_train))
+            gradient_hook.append(hook.SquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch, self.learning_spec.n_fed_batch))
 
         return gradient_hook
 
@@ -214,6 +214,35 @@ class EWCModelFNCreator(FullBaseModelFNCreator):
     def __init__(self, features, labels, mode, learning_spec, i_task):
         super(EWCModelFNCreator, self).__init__(features, labels, mode, learning_spec, i_task)
         self.alpha = learning_spec.alpha
+
+    def create(self):
+        self.loss = self.loss + self.alpha * self.add_ewc_loss(self.model.weights)
+        gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
+        grads_and_vars = gradient_computer.compute()
+
+        if self.mode == tf.estimator.ModeKeys.EVAL:
+            return self.evaluate(self.loss)
+
+        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+
+        gradient_hook = self.compute_curvature(grads_and_vars)
+
+        return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op, training_hooks=gradient_hook)
+
+    def add_ewc_loss(self, v_cur):
+        ewc_loss = 0
+        for i in range(self.i_task):
+            g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher'+str(i))
+            v_pre = self.load_tensors(self.learning_spec.model_dir, 'theta'+str(i))
+            for w, v, f in zip(v_cur, v_pre, g_pre):
+                ewc_loss = ewc_loss + tf.losses.mean_squared_error(w, v, f)
+
+        return ewc_loss
+
+
+class QEWCModelFNCreator(EWCModelFNCreator):
+    def __init__(self, features, labels, mode, learning_spec, i_task):
+        super(EWCModelFNCreator, self).__init__(features, labels, mode, learning_spec, i_task)
 
     def create(self):
         self.loss = self.loss + self.alpha * self.add_ewc_loss(self.model.weights)

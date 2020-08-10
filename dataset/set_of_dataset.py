@@ -14,6 +14,11 @@ class SetOfDataSet(object):
     def generate(self):
         pass
 
+
+class SetOfMNIST(SetOfDataSet):
+    def __init__(self, n_task):
+        super(SetOfMNIST, self).__init__(n_task)
+
     def concat(self):
         x_train_list = []
         y_train_list = []
@@ -26,6 +31,15 @@ class SetOfDataSet(object):
         multi_dataset.y_train = np.concatenate(y_train_list, axis=0)
 
         return multi_dataset
+
+    def split(self, n_round, n_fed_batch):
+        self.fed_list = []
+        for i in range(n_round):
+            for data in self.list:
+                fed_batch = (data.x_train[n_fed_batch * i:n_fed_batch * (i + 1)], data.y_train[n_fed_batch * i:n_fed_batch * (i + 1)])
+                fed_dataset = ds.DataSet()
+                fed_dataset.set_data(fed_batch)
+                self.fed_list.append(fed_dataset)
 
 
 class SetOfSwapBlock(SetOfDataSet):
@@ -54,7 +68,7 @@ class SetOfSwapBlock(SetOfDataSet):
         self.grid_perm[o] = i
 
 
-class SetOfMNISTPlusMNISTBPERM(SetOfDataSet):
+class SetOfMNISTPlusMNISTBPERM(SetOfMNIST):
     def __init__(self, n_task, n_grid):
         self.n_grid = n_grid
         super(SetOfMNISTPlusMNISTBPERM, self).__init__(n_task)
@@ -69,38 +83,7 @@ class SetOfMNISTPlusMNISTBPERM(SetOfDataSet):
             self.list.append(temp_dataset)
 
 
-class SetOfCIFAR10PlusCIFAR10BPERM(SetOfDataSet):
-    def __init__(self, n_task, n_grid):
-        self.n_grid = n_grid
-        super(SetOfCIFAR10PlusCIFAR10BPERM, self).__init__(n_task)
-
-    def generate(self):
-        first_dataset = ds.CIFAR10()
-        first_dataset.reshape3D()
-        self.list.append(first_dataset)
-        for i in range(1, self.n_task):
-            temp_dataset = ds.RandCIFAR10BPERM(self.n_grid)
-            temp_dataset.reshape3D()
-            self.list.append(temp_dataset)
-
-
-class SetOfMNISTPlusSwapMNISTBPERM(SetOfDataSet):
-    def __init__(self, n_task, n_swap_epoch):
-        n_pixel = 784
-        self.perm = np.zeros(n_pixel * n_swap_epoch, dtype=int)
-        for i in np.arange(n_swap_epoch):
-            self.perm[n_pixel*i:n_pixel*(i+1)] = np.random.permutation(n_pixel)
-
-        super(SetOfMNISTPlusSwapMNISTBPERM, self).__init__(n_task)
-
-    def generate(self):
-        self.list.append(ds.MNIST())
-        self.list[0].flatten()
-        for i in range(1, self.n_task):
-            self.list.append(ds.SwapMnist(self.perm))
-
-
-class SetOfRandMNISTPERM(SetOfDataSet):
+class SetOfRandMNISTPERM(SetOfMNIST):
     def __init__(self, n_task):
         super(SetOfRandMNISTPERM, self).__init__(n_task)
 
@@ -109,7 +92,7 @@ class SetOfRandMNISTPERM(SetOfDataSet):
             self.list.append(ds.RandMNISTPERM())
 
 
-class SetOfRandRowMNISTPERM(SetOfDataSet):
+class SetOfRandRowMNISTPERM(SetOfMNIST):
     def __init__(self, n_task):
         super(SetOfRandRowMNISTPERM, self).__init__(n_task)
 
@@ -118,7 +101,7 @@ class SetOfRandRowMNISTPERM(SetOfDataSet):
             self.list.append(ds.RandRowMNISTPERM())
 
 
-class SetOfRandColMNISTPERM(SetOfDataSet):
+class SetOfRandColMNISTPERM(SetOfMNIST):
     def __init__(self, n_task):
         super(SetOfRandColMNISTPERM, self).__init__(n_task)
 
@@ -127,7 +110,7 @@ class SetOfRandColMNISTPERM(SetOfDataSet):
             self.list.append(ds.RandColMNISTPERM())
 
 
-class SetOfRandWholeMNISTPERM(SetOfDataSet):
+class SetOfRandWholeMNISTPERM(SetOfMNIST):
     def __init__(self, n_task):
         super(SetOfRandWholeMNISTPERM, self).__init__(n_task)
 
@@ -136,7 +119,7 @@ class SetOfRandWholeMNISTPERM(SetOfDataSet):
             self.list.append(ds.RandWholeMNISTPERM())
 
 
-class SetOfRandMNISTBPERM(SetOfDataSet):
+class SetOfRandMNISTBPERM(SetOfMNIST):
     def __init__(self, n_task, n_grid):
         self.n_grid = n_grid
         super(SetOfRandMNISTBPERM, self).__init__(n_task)
@@ -146,7 +129,7 @@ class SetOfRandMNISTBPERM(SetOfDataSet):
             self.list.append(ds.RandMNISTBPERM(self.n_grid))
 
 
-class SetOfRandMNISTROTA(SetOfDataSet):
+class SetOfRandMNISTROTA(SetOfMNIST):
     def __init__(self, n_task):
         super(SetOfRandMNISTROTA, self).__init__(n_task)
 
@@ -155,7 +138,7 @@ class SetOfRandMNISTROTA(SetOfDataSet):
             self.list.append(ds.RandMNISTROTA())
 
 
-class SetOfGradualMNISTROTA(SetOfDataSet):
+class SetOfGradualMNISTROTA(SetOfMNIST):
     def __init__(self, n_task, range):
         self.range = range
         super(SetOfGradualMNISTROTA, self).__init__(n_task)
@@ -166,7 +149,7 @@ class SetOfGradualMNISTROTA(SetOfDataSet):
             self.list.append(ds.MNISTROTA(angle))
 
 
-class SetOfGradualMNISTSPLIT(SetOfDataSet):
+class SetOfGradualMNISTSPLIT(SetOfMNIST):
     def __init__(self, n_task):
         self.period = int(10 / n_task)
         super(SetOfGradualMNISTSPLIT, self).__init__(n_task)
@@ -178,27 +161,9 @@ class SetOfGradualMNISTSPLIT(SetOfDataSet):
             self.list.append(ds.MNISTSPLIT(label_list))
 
 
-class SetOfAlternativeMNIST(object):
+class SetOfCIFAR10(SetOfDataSet):
     def __init__(self, n_task):
-        self.list = []
-        self.n_task = int(n_task/2)
-        self.generate()
-
-    def generate(self):
-        for i in range(self.n_task):
-            self.list.append(ds.RandMNISTPERM())
-            self.list.append(ds.RandMNISTROTA())
-
-
-class SetOfRandCIFAR10PERM(object):
-    def __init__(self, n_task):
-        self.list = []
-        self.n_task = n_task
-        self.generate()
-
-    def generate(self):
-        for i in range(self.n_task):
-            self.list.append(ds.RandCIFAR10PERM())
+        super(SetOfCIFAR10, self).__init__(n_task)
 
     def concat(self):
         x_train_list = []
@@ -214,7 +179,34 @@ class SetOfRandCIFAR10PERM(object):
         return multi_dataset
 
 
-class SetOfRandCIFAR10ROTA(SetOfDataSet):
+class SetOfCIFAR10PlusCIFAR10BPERM(SetOfCIFAR10):
+    def __init__(self, n_task, n_grid):
+        self.n_grid = n_grid
+        super(SetOfCIFAR10PlusCIFAR10BPERM, self).__init__(n_task)
+
+    def generate(self):
+        first_dataset = ds.CIFAR10()
+        first_dataset.reshape3D()
+        self.list.append(first_dataset)
+        for i in range(1, self.n_task):
+            temp_dataset = ds.RandCIFAR10BPERM(self.n_grid)
+            temp_dataset.reshape3D()
+            self.list.append(temp_dataset)
+
+
+class SetOfRandCIFAR10PERM(SetOfCIFAR10):
+    def __init__(self, n_task):
+        super(SetOfRandCIFAR10PERM, self).__init__(n_task)
+        self.list = []
+        self.n_task = n_task
+        self.generate()
+
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(ds.RandCIFAR10PERM())
+
+
+class SetOfRandCIFAR10ROTA(SetOfCIFAR10):
     def __init__(self, n_task):
         super(SetOfRandCIFAR10ROTA, self).__init__(n_task)
 
@@ -223,7 +215,7 @@ class SetOfRandCIFAR10ROTA(SetOfDataSet):
             self.list.append(ds.RandCIFAR10ROTA())
 
 
-class SetOfRandCIFAR10BPERM(SetOfDataSet):
+class SetOfRandCIFAR10BPERM(SetOfCIFAR10):
     def __init__(self, n_task, n_grid):
         self.n_grid = n_grid
         super(SetOfRandCIFAR10BPERM, self).__init__(n_task)

@@ -12,7 +12,6 @@ class GradientHook(tf.train.SessionRunHook):
         self.period = int(n_train / self.n_batch)
 
         self.global_step = tf.train.get_global_step()
-        self.condition = tf.equal(self.global_step % 600, 0)
 
     def after_run(self, run_context, run_values):
         _ = run_context

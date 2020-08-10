@@ -7,6 +7,7 @@ from model import model_fn
 class NNLearner(object):
     def __init__(self, dataset, learning_spec):
         self.dataset = dataset
+        print(dataset)
         self.learning_spec = learning_spec
 
     @abc.abstractmethod
@@ -130,12 +131,12 @@ class FedEstimatorLearner(EstimatorLearner):
     def combine_dataset(self, dataset):
         x_batchs = []
         y_batchs = []
-        n_batch = self.learning_spec.n_batch
+        fed_batch = self.learning_spec.fed_batch
 
-        for i in range(int(self.learning_spec.n_train/n_batch)):
+        for i in range(int(self.learning_spec.n_train/fed_batch)):
             for data in dataset:
-                x_batchs.append(data.x_train[n_batch*i:n_batch*(i+1)])
-                y_batchs.append(data.y_train[n_batch*i:n_batch*(i+1)])
+                x_batchs.append(data.x_train[fed_batch*i:fed_batch*(i+1)])
+                y_batchs.append(data.y_train[fed_batch*i:fed_batch*(i+1)])
 
         np_x_train = np.concatenate(x_batchs, axis=0)
         np_y_train = np.concatenate(y_batchs, axis=0)
@@ -144,6 +145,17 @@ class FedEstimatorLearner(EstimatorLearner):
         print(np_y_train.shape)
 
         return tf.data.Dataset.from_tensor_slices((np_x_train, np_y_train))
+
+
+class FedEWCEstimatorLearner(FedEstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config):
+        super(FedEWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+
+    def model_fn(self, features, labels, mode):
+        model_fn_creator = model_fn.QEWCModelFNCreator(features, labels, mode, self.learning_spec)
+
+        return model_fn_creator.create()
+
 
 
 class IMMEstimatorLearner(EstimatorLearner):

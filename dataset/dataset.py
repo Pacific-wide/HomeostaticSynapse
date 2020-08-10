@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-import scipy.io
 from PIL import Image
 
 
@@ -17,6 +16,10 @@ class DataSet(object):
 
     def normalize(self):
         pass
+
+    def set_data(self, tuple):
+        self.x_train = tuple[0]
+        self.y_train = tuple[1]
 
 
 class MNIST(DataSet):
@@ -107,11 +110,11 @@ class RowMNISTPERM(MNISTPERM):
         self.flatten()
 
 
-class RandRowPMNISTPERM(RowMNISTPERM):
+class RandRowMNISTPERM(RowMNISTPERM):
     def __init__(self):
         row = 28
         perm = np.random.permutation(row)
-        super(RandRowPMNISTPERM, self).__init__(perm)
+        super(RandRowMNISTPERM, self).__init__(perm)
 
 
 class ColMNISTPERM(MNISTPERM):
@@ -266,38 +269,6 @@ class MNISTSPLIT(MNIST):
         return index_list
 
 
-class SVHN(DataSet):
-    def __init__(self):
-        super(SVHN, self).__init__()
-        self.d_in = 32 * 32 * 3
-        self.n_train = self.x_train.shape[0]
-        self.n_train = self.x_test.shape[0]
-
-    def load(self):
-        train = scipy.io.loadmat('dataset/train.mat')
-        test = scipy.io.loadmat('dataset/test.mat')
-
-        self.x_train = train['X']   # (32, 32, 3, 73257)
-        self.y_train = train['y']   # (73257, 1)
-        self.x_test = test['X']     # (32, 32, 3, 26032)
-        self.y_test = test['y']     # (26032, 1)
-
-    def normalize(self):
-        self.x_train = self.x_train.astype(np.float32)
-        self.x_test = self.x_test.astype(np.float32)
-
-        self.x_train = self.x_train.reshape(32*32*3, -1) / 255.0  # (60000, 784)
-        self.x_test = self.x_test.reshape(32*32*3, -1) / 255.0  # (10000, 784)
-
-        self.x_train = np.swapaxes(self.x_train, 0, 1)
-        self.x_test = np.swapaxes(self.x_test, 0, 1)
-
-        self.y_train = self.y_train.astype(np.int64)
-        self.y_test = self.y_test.astype(np.int64)
-        self.y_train = self.y_train.reshape(-1)   # (73257, )
-        self.y_test = self.y_test.reshape(-1)   # (26032, )
-
-
 class CIFAR10(DataSet):
     def __init__(self):
         super(CIFAR10, self).__init__()
@@ -437,10 +408,3 @@ class RandCIFAR10BPERM(CIFAR10BPERM):
         super(RandCIFAR10BPERM, self).__init__(perm, n_grid)
 
 
-class FashionMNIST(DataSet):
-    def __init__(self):
-        super(FashionMNIST, self).__init__()
-        self.d_in = 32 * 32 * 3
-
-    def load(self):
-        (self.x_train, self.y_train), (self.x_test, self.y_test) = tf.keras.datasets.fashion_mnist.load_data()
