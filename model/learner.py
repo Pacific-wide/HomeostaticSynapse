@@ -28,13 +28,11 @@ class EstimatorLearner(NNLearner):
         self.estimator.train(input_fn=self.train_input_fn)
 
     def evaluate(self):
-        return self.estimator.evaluate(input_fn=self.eval_input_fn, steps=1000)
+        return self.estimator.evaluate(input_fn=self.eval_input_fn)
 
     def train_input_fn(self):
         tf_train = tf.data.Dataset.from_tensor_slices((self.dataset.x_train, self.dataset.y_train))
         tf_train = tf_train.repeat(self.learning_spec.n_epoch).batch(self.learning_spec.n_batch)
-
-        print(tf_train)
 
         return tf_train
 
@@ -70,6 +68,16 @@ class OEWCEstimatorLearner(EstimatorLearner):
 
     def model_fn(self, features, labels, mode):
         model_fn_creator = model_fn.OEWCModelFNCreator(features, labels, mode, self.learning_spec)
+
+        return model_fn_creator.create()
+
+
+class QEWCEstimatorLearner(EstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config):
+        super(QEWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+
+    def model_fn(self, features, labels, mode):
+        model_fn_creator = model_fn.QuantizedEWCModelFNCreator(features, labels, mode, self.learning_spec)
 
         return model_fn_creator.create()
 
@@ -131,7 +139,7 @@ class FedEstimatorLearner(EstimatorLearner):
     def combine_dataset(self, dataset):
         x_batchs = []
         y_batchs = []
-        fed_batch = self.learning_spec.fed_batch
+        fed_batch = self.learning_spec.n_fed_batch
 
         for i in range(int(self.learning_spec.n_train/fed_batch)):
             for data in dataset:

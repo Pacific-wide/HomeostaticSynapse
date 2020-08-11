@@ -37,6 +37,7 @@ class Main(FCN):
     def __init__(self, d_in):
         super(Main, self).__init__("main", 2, d_in, 10, 50)
 
+
 class HM(FCN):
     def __init__(self):
         super(HM, self).__init__("meta", 2, 2, 1, 30)

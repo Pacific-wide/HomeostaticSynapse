@@ -1,6 +1,5 @@
 import tensorflow as tf
 import abc
-from optimizer import loss as ls
 from optimizer import gradient_computer as gc
 from model import net
 from model import hook
@@ -19,16 +18,13 @@ class ModelFNCreator(object):
         self.predictions = tf.argmax(self.logits, axis=1)
         self.labels = labels
         self.mode = mode
-
-        print(self.logits)
-        print(self.labels)
-        print(self.predictions)
-
         self.one_hot_labels = tf.one_hot(self.labels, 10)
-        print(self.one_hot_labels)
+        self.cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+        self.loss = self.cce(self.one_hot_labels, self.logits)
 
-        self.loss = ls.SoftMaxCrossEntropyLoss(self.logits, self.one_hot_labels).compute()
         self.opt = self.optimizer_spec.optimizer
+
+        self.global_step = tf.compat.v1.train.get_global_step()
 
     @abc.abstractmethod
     def create(self):
@@ -44,9 +40,11 @@ class ModelFNCreator(object):
         return pre_grads
 
     def evaluate(self, loss):
-        accuracy = tf.metrics.accuracy(self.labels, self.predictions)
+        accuracy = tf.keras.metrics.Accuracy()
+        accuracy.update_state(self.labels, self.predictions)
+
         metrics = {'accuracy': accuracy}
-        tf.summary.scalar(name='accuracy', tensor=accuracy)
+        tf.summary.scalar(name='accuracy', data=accuracy.result())
         return tf.estimator.EstimatorSpec(self.mode, loss=loss, eval_metric_ops=metrics)
 
     def compute_curvature(self, grads_and_vars):
@@ -55,6 +53,13 @@ class ModelFNCreator(object):
             gradient_hook.append(hook.SquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch, self.learning_spec.n_fed_batch))
 
         return gradient_hook
+
+    def global_step_increase(self, grads_and_vars):
+        global_step_increase_op = self.global_step.assign_add(1)
+        with tf.control_dependencies([global_step_increase_op]):
+            train_op = self.opt.apply_gradients(grads_and_vars)
+
+        return train_op
 
 
 class SingleModelFNCreator(ModelFNCreator):
@@ -68,7 +73,7 @@ class SingleModelFNCreator(ModelFNCreator):
         if self.mode == tf.estimator.ModeKeys.EVAL:
             return self.evaluate(self.loss)
 
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+        train_op = self.global_step_increase(grads_and_vars)
 
         return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op)
 
@@ -84,7 +89,7 @@ class BaseModelFNCreator(ModelFNCreator):
         if self.mode == tf.estimator.ModeKeys.EVAL:
             return self.evaluate(self.loss)
 
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+        train_op = self.global_step_increase(grads_and_vars)
 
         gradient_hook = self.compute_curvature(grads_and_vars)
 
@@ -156,8 +161,6 @@ class OEWCModelFNCreator(ModelFNCreator):
         g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher')
         v_pre = self.load_tensors(self.learning_spec.model_dir, 'main')
 
-        print(g_pre)
-
         self.loss = self.loss + self.alpha * self.add_ewc_loss(self.model.weights, v_pre, g_pre)
         gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
         grads_and_vars = gradient_computer.compute()
@@ -165,7 +168,7 @@ class OEWCModelFNCreator(ModelFNCreator):
         if self.mode == tf.estimator.ModeKeys.EVAL:
             return self.evaluate(self.loss)
 
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+        train_op = self.global_step_increase(grads_and_vars)
 
         gradient_hook = self.compute_curvature(grads_and_vars)
 
@@ -175,6 +178,49 @@ class OEWCModelFNCreator(ModelFNCreator):
         ewc_loss = 0
         for w, v, f in zip(v_cur, v_pre, g_pre):
             ewc_loss = ewc_loss + tf.losses.mean_squared_error(w, v, f)
+
+        return ewc_loss
+
+
+class QuantizedEWCModelFNCreator(ModelFNCreator):
+    def __init__(self, features, labels, mode, learning_spec):
+        super(QuantizedEWCModelFNCreator, self).__init__(features, labels, mode, learning_spec)
+        print("alpha here")
+        self.alpha = learning_spec.alpha
+        self.step = 0.01
+
+    def create(self):
+        g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher')
+        v_pre = self.load_tensors(self.learning_spec.model_dir, 'main')
+
+        self.loss = self.loss + self.alpha * self.add_ewc_loss(self.model.weights, v_pre, g_pre)
+        gradient_computer = gc.ScopeGradientComputer(self.opt, self.loss, self.model.weights)
+        grads_and_vars = gradient_computer.compute()
+
+        if self.mode == tf.estimator.ModeKeys.EVAL:
+            return self.evaluate(self.loss)
+
+        train_op = self.global_step_increase(grads_and_vars)
+
+        gradient_hook = self.compute_curvature(grads_and_vars)
+
+        return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op, training_hooks=gradient_hook)
+
+    def quantize(self, f, step):
+        f_max = f.max()
+        f_min = f.min()
+        bins = np.arange(f_min, f_max, step)
+
+        quantized_index = np.digitize(f, bins, right=False)
+        quantized_vector = quantized_index * step
+
+        return quantized_vector
+
+    def add_ewc_loss(self, v_cur, v_pre, g_pre):
+        ewc_loss = 0
+        for w, v, f in zip(v_cur, v_pre, g_pre):
+            quantized_f = self.quantize(f, self.step)
+            ewc_loss = ewc_loss + tf.losses.mean_squared_error(w, v, quantized_f)
 
         return ewc_loss
 
@@ -195,7 +241,7 @@ class CenterEWCModelFNCreator(CenterBaseModelFNCreator):
         if self.mode == tf.estimator.ModeKeys.EVAL:
             return self.evaluate(self.loss)
 
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+        train_op = self.global_step_increase(grads_and_vars)
 
         gradient_hook = self.compute_curvature(grads_and_vars)
 
@@ -223,7 +269,7 @@ class EWCModelFNCreator(FullBaseModelFNCreator):
         if self.mode == tf.estimator.ModeKeys.EVAL:
             return self.evaluate(self.loss)
 
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+        train_op = self.global_step_increase(grads_and_vars)
 
         gradient_hook = self.compute_curvature(grads_and_vars)
 
@@ -252,7 +298,7 @@ class QEWCModelFNCreator(EWCModelFNCreator):
         if self.mode == tf.estimator.ModeKeys.EVAL:
             return self.evaluate(self.loss)
 
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+        train_op = self.global_step_increase(grads_and_vars)
 
         gradient_hook = self.compute_curvature(grads_and_vars)
 
@@ -280,7 +326,7 @@ class MetaModelFNCreator(ModelFNCreator):
         if self.mode == tf.estimator.ModeKeys.EVAL:
             return self.evaluate(self.loss)
 
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+        train_op = self.global_step_increase(grads_and_vars)
 
         gradient_hook = self.compute_curvature(grads_and_vars)
 
@@ -363,7 +409,7 @@ class MetaAlphaTestModelFNCreator(MetaAlphaModelFNCreator):
         total_gradient_computer = gc.ScopeGradientComputer(self.opt, self.total_loss, self.model.weights)
         total_grads_and_vars = total_gradient_computer.compute()
 
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
+        train_op = self.global_step_increase(grads_and_vars)
 
         gradient_hook = self.compute_curvature(total_grads_and_vars)
 
@@ -401,8 +447,6 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         g_pre = self.load_tensors(self.meta_learning_spec.model_dir, 'fisher')
         v_pre = self.load_tensors(self.meta_learning_spec.model_dir, 'main')
 
-        train_op = self.opt.apply_gradients(grads_and_vars, global_step=tf.train.get_global_step())
-
         meta_batch = self.combine_meta_features(g_cur, g_pre, v_cur, v_pre)
         meta_label = self.make_meta_labels(g_cur, g_joint, v_cur, v_pre, g_pre)
         tf.summary.scalar(name='losses/meta_label', tensor=tf.reshape(meta_label, []))
@@ -415,11 +459,11 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         meta_gradient_computer = gc.ScopeGradientComputer(self.meta_opt, meta_loss, self.meta_model.weights)
         meta_grads_and_vars = meta_gradient_computer.compute()
 
-        meta_train_op = self.meta_opt.apply_gradients(meta_grads_and_vars, global_step=tf.train.get_global_step())
+        ops = self.global_step_increase_meta(meta_grads_and_vars)
 
         gradient_hook = self.compute_curvature(grads_and_vars)
 
-        return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=tf.group([train_op, meta_train_op]),
+        return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=tf.group(ops),
                                           training_hooks=gradient_hook)
 
     def make_meta_labels(self, g_cur, g_joint, v_cur, v_pre, g_pre):
@@ -441,3 +485,11 @@ class MetaAlphaTrainModelFNCreator(MetaAlphaModelFNCreator):
         tf.summary.scalar(name='parameter/alpha', tensor=alpha)
 
         return tf.reshape(alpha, shape=[1, -1])
+
+    def global_step_increase_meta(self, grads_and_vars, meta_grads_and_vars):
+        global_step_increase_op = self.global_step.assign_add(1)
+        with tf.control_dependencies([global_step_increase_op]):
+            train_op = self.opt.apply_gradients(grads_and_vars)
+            meta_train_op = self.opt.apply_gradients(meta_grads_and_vars)
+
+        return [train_op, meta_train_op]

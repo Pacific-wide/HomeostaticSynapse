@@ -139,6 +139,24 @@ class GroupFedOEWCLearner(GroupLearner):
         return self.eval_matrix
 
 
+class GroupFedQEWCLearner(GroupFedOEWCLearner):
+    def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
+        super(GroupFedQEWCLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+
+    def train_and_evaluate(self):
+        self.base_train()
+
+        for i in range(1, self.n_fed_task):
+            dataset = self.set_of_dataset.fed_list[i]
+            single_learner = learner.QEWCEstimatorLearner(dataset, self.learning_specs[0], self.run_config)
+            single_learner.train()
+
+        for i in range(self.n_task):
+            self.evaluate(i)
+
+        return self.eval_matrix
+
+
 class GroupInDepLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
         super(GroupInDepLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
@@ -175,20 +193,6 @@ class GroupMultiLearner(GroupInDepLearner):
         return self.eval_matrix
 
 
-class GroupFedLearner(GroupInDepLearner):
-    def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
-        super(GroupFedLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
-
-    def train_and_evaluate(self):
-        Fed_learner = learner.FedEstimatorLearner(self.set_of_dataset.list, self.learning_specs[0], self.run_config)
-        Fed_learner.train()
-
-        for i in range(self.n_task):
-            self.evaluate(i)
-
-        return self.eval_matrix
-
-
 class GroupIMMLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
         super(GroupIMMLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
@@ -199,6 +203,20 @@ class GroupIMMLearner(GroupLearner):
             imm_learner = learner.IMMEstimatorLearner(dataset, self.learning_specs[i], self.run_config, i)
             imm_learner.train()
 
+            self.evaluate(i)
+
+        return self.eval_matrix
+
+
+class GroupFedLearner(GroupInDepLearner):
+    def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
+        super(GroupFedLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+
+    def train_and_evaluate(self):
+        Fed_learner = learner.FedEstimatorLearner(self.set_of_dataset.list, self.learning_specs[0], self.run_config)
+        Fed_learner.train()
+
+        for i in range(self.n_task):
             self.evaluate(i)
 
         return self.eval_matrix

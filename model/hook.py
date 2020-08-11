@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 
-class GradientHook(tf.train.SessionRunHook):
+class GradientHook(tf.estimator.SessionRunHook):
     def __init__(self, grad_and_var, n_batch, n_train):
         self.gradients = grad_and_var[0]
         self.variable = grad_and_var[1]
@@ -11,7 +11,7 @@ class GradientHook(tf.train.SessionRunHook):
         self.n_train = n_train
         self.period = int(n_train / self.n_batch)
 
-        self.global_step = tf.train.get_global_step()
+        self.global_step = tf.compat.v1.train.get_global_step()
 
     def after_run(self, run_context, run_values):
         _ = run_context
@@ -34,7 +34,7 @@ class SquareAccumulationGradientHook(GradientHook):
         self.sum_gradients = tf.assign_add(self.sum_gradients, self.assign_gradients)
 
     def before_run(self, run_context):
-        return tf.train.SessionRunArgs({'sum_gradients': self.sum_gradients,
+        return tf.estimator.SessionRunArgs({'sum_gradients': self.sum_gradients,
                                         'global_step': self.global_step,
                                         'condition': self.assign_condition})
 
@@ -62,7 +62,7 @@ class CenterSquareAccumulationGradientHook(SquareAccumulationGradientHook):
             print('step condtion: ', results['condition'])
 
     def before_run(self, run_context):
-        return tf.train.SessionRunArgs({'sum_gradients': self.sum_gradients,
+        return tf.estimator.SessionRunArgs({'sum_gradients': self.sum_gradients,
                                         'sum_thetas': self.sum_thetas,
                                         'global_step': self.global_step,
                                         'condition': self.assign_condition})
@@ -94,6 +94,6 @@ class SequentialSquareAccumulationGradientHook(SquareAccumulationGradientHook):
             print(self.name, ': theta', np.linalg.norm(results['theta']))
 
     def before_run(self, run_context):
-        return tf.train.SessionRunArgs({'fisher': self.fisher,
+        return tf.estimator.SessionRunArgs({'fisher': self.fisher,
                                         'theta': self.theta,
                                         'global_step': self.global_step})

@@ -5,7 +5,7 @@ class OptimizerSpec(object):
 
 
 class LearningSpec(object):
-    def __init__(self, n_epoch, n_batch, n_train, n_task, model_dir, optimizer_spec, n_fed_batch, alpha=0.0):
+    def __init__(self, n_epoch, n_batch, n_train, n_task, model_dir, optimizer_spec, n_fed_batch, alpha=1.0):
         self.n_epoch = n_epoch
         self.n_batch = n_batch
         self.alpha = alpha

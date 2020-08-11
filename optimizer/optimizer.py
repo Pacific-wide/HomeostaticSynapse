@@ -16,7 +16,7 @@ class SGDOptimizer(Optimizer):
         super(SGDOptimizer, self).__init__(learning_rate)
 
     def build(self):
-        return tf.train.GradientDescentOptimizer(self.learning_rate)
+        return tf.keras.optimizers.SGD(self.learning_rate)
 
 
 class AdamOptimizer(Optimizer):
@@ -24,4 +24,4 @@ class AdamOptimizer(Optimizer):
         super(Optimizer, self).__init__(learning_rate)
 
     def build(self):
-        return tf.train.AdamOptimizer(self.learning_rate)
+        return tf.keras.optimizers.Adam(self.learning_rate)

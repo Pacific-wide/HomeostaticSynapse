@@ -2,6 +2,8 @@ import tensorflow as tf
 import numpy as np
 import argparse
 import importlib
+import sys
+import logging
 
 from optimizer import optimizer as op
 from optimizer import spec
@@ -63,7 +65,7 @@ def main(argv):
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(n_fed_batch/n_batch))
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(6000))
 
     for i in range(n_task):
         opt = op.SGDOptimizer(learning_rates[i]).build()
@@ -87,5 +89,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    tf.logging.set_verbosity(tf.logging.INFO)
-    tf.app.run()
+    logging.getLogger("tensorflow").setLevel(logging.INFO)
+    main(sys.argv[1])
