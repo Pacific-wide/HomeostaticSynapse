@@ -22,7 +22,7 @@ class ModelFNCreator(object):
         self.cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
         self.loss = self.cce(self.one_hot_labels, self.logits)
 
-        self.opt = self.optimizer_spec.optimizer
+        self.opt = self.optimizer_spec.optimizer.build()
 
         self.global_step = tf.compat.v1.train.get_global_step()
 
@@ -49,7 +49,7 @@ class ModelFNCreator(object):
 
     def compute_curvature(self, grads_and_vars):
         gradient_hook = []
-        for i, grad_and_var in enumerate(grads_and_vars):
+        for grad_and_var in grads_and_vars:
             gradient_hook.append(hook.SquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch, self.learning_spec.n_fed_batch))
 
         return gradient_hook
@@ -177,7 +177,7 @@ class OEWCModelFNCreator(ModelFNCreator):
     def add_ewc_loss(self, v_cur, v_pre, g_pre):
         ewc_loss = 0
         for w, v, f in zip(v_cur, v_pre, g_pre):
-            ewc_loss = ewc_loss + tf.losses.mean_squared_error(w, v, f)
+            ewc_loss = ewc_loss + tf.math.reduce_sum(f * tf.math.square(w-v))
 
         return ewc_loss
 
@@ -185,9 +185,7 @@ class OEWCModelFNCreator(ModelFNCreator):
 class QuantizedEWCModelFNCreator(ModelFNCreator):
     def __init__(self, features, labels, mode, learning_spec):
         super(QuantizedEWCModelFNCreator, self).__init__(features, labels, mode, learning_spec)
-        print("alpha here")
         self.alpha = learning_spec.alpha
-        self.step = 0.01
 
     def create(self):
         g_pre = self.load_tensors(self.learning_spec.model_dir, 'fisher')
@@ -206,21 +204,11 @@ class QuantizedEWCModelFNCreator(ModelFNCreator):
 
         return tf.estimator.EstimatorSpec(self.mode, loss=self.loss, train_op=train_op, training_hooks=gradient_hook)
 
-    def quantize(self, f, step):
-        f_max = f.max()
-        f_min = f.min()
-        bins = np.arange(f_min, f_max, step)
-
-        quantized_index = np.digitize(f, bins, right=False)
-        quantized_vector = quantized_index * step
-
-        return quantized_vector
-
     def add_ewc_loss(self, v_cur, v_pre, g_pre):
         ewc_loss = 0
         for w, v, f in zip(v_cur, v_pre, g_pre):
-            quantized_f = self.quantize(f, self.step)
-            ewc_loss = ewc_loss + tf.losses.mean_squared_error(w, v, quantized_f)
+            quantized_f = np.round(f, 1)
+            ewc_loss = ewc_loss + tf.math.reduce_sum(quantized_f*tf.math.square(w-v))
 
         return ewc_loss
 

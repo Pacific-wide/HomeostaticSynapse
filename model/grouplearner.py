@@ -126,6 +126,7 @@ class GroupFedOEWCLearner(GroupLearner):
         base_learner.train()
 
     def train_and_evaluate(self):
+        print('base_train')
         self.base_train()
 
         for i in range(1, self.n_fed_task):

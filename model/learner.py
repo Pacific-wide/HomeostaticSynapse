@@ -7,7 +7,6 @@ from model import model_fn
 class NNLearner(object):
     def __init__(self, dataset, learning_spec):
         self.dataset = dataset
-        print(dataset)
         self.learning_spec = learning_spec
 
     @abc.abstractmethod
@@ -22,6 +21,7 @@ class NNLearner(object):
 class EstimatorLearner(NNLearner):
     def __init__(self, dataset, learning_spec, run_config):
         super(EstimatorLearner, self).__init__(dataset, learning_spec)
+        tf.compat.v1.disable_eager_execution()
         self.estimator = tf.estimator.Estimator(model_fn=self.model_fn, config=run_config)
 
     def train(self):

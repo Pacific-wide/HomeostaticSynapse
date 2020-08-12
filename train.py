@@ -65,10 +65,10 @@ def main(argv):
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(6000))
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(n_fed_batch/n_batch))
 
     for i in range(n_task):
-        opt = op.SGDOptimizer(learning_rates[i]).build()
+        opt = op.SGDOptimizer(learning_rates[i])
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_train, n_task,
                                                 model_dir, opt_spec, n_fed_batch, alpha))

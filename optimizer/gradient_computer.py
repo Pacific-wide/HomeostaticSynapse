@@ -18,4 +18,5 @@ class ScopeGradientComputer(GradientComputer):
         self.var_scope = var_scope
 
     def compute(self):
-        return zip(self.opt.get_gradients(loss=self.loss, params=self.var_scope), self.var_scope)
+
+        return list(zip(self.opt.get_gradients(loss=self.loss, params=self.var_scope), self.var_scope))
