@@ -165,6 +165,10 @@ class SetOfCIFAR10(SetOfDataSet):
     def __init__(self, n_task):
         super(SetOfCIFAR10, self).__init__(n_task)
 
+    def generate(self):
+        for i in range(self.n_task):
+            self.list.append(ds.CIFAR10())
+
     def concat(self):
         x_train_list = []
         y_train_list = []

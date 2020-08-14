@@ -62,6 +62,20 @@ class SingleEstimatorLearner(EstimatorLearner):
         return model_fn_creator.create()
 
 
+class SGDEstimatorLearner(EstimatorLearner):
+    def __init__(self, dataset, learning_spec, run_config):
+        super(SGDEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
+        self.n_fed_batch = self.learning_spec.n_batch * self.learning_spec.n_fed_step
+        self.n_train = self.learning_spec.n_train
+
+    def train_input_fn(self):
+        shuffle_map = np.random.choice(self.n_fed_batch, self.n_train, replace=True)
+        tf_train = tf.data.Dataset.from_tensor_slices((self.dataset.x_train[shuffle_map], self.dataset.y_train[shuffle_map]))
+        tf_train = tf_train.shuffle(self.learning_spec.n_train, reshuffle_each_iteration=True).repeat(self.learning_spec.n_epoch).batch(self.learning_spec.n_batch)
+
+        return tf_train
+
+
 class OEWCEstimatorLearner(EstimatorLearner):
     def __init__(self, dataset, learning_spec, run_config):
         super(OEWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
@@ -119,51 +133,6 @@ class MultiEstimatorLearner(EstimatorLearner):
         model_fn_creator = model_fn.SingleModelFNCreator(features, labels, mode, self.learning_spec)
 
         return model_fn_creator.create()
-
-
-class FedEstimatorLearner(EstimatorLearner):
-    def __init__(self, dataset, learning_spec, run_config):
-        super(FedEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
-        self.tf_train_list = []
-
-    def train_input_fn(self):
-        tf_train = self.combine_dataset(self.dataset)
-        tf_train = tf_train.repeat(self.learning_spec.n_epoch).batch(self.learning_spec.n_batch)
-        return tf_train
-
-    def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.SingleModelFNCreator(features, labels, mode, self.learning_spec)
-
-        return model_fn_creator.create()
-
-    def combine_dataset(self, dataset):
-        x_batchs = []
-        y_batchs = []
-        fed_batch = self.learning_spec.n_fed_batch
-
-        for i in range(int(self.learning_spec.n_train/fed_batch)):
-            for data in dataset:
-                x_batchs.append(data.x_train[fed_batch*i:fed_batch*(i+1)])
-                y_batchs.append(data.y_train[fed_batch*i:fed_batch*(i+1)])
-
-        np_x_train = np.concatenate(x_batchs, axis=0)
-        np_y_train = np.concatenate(y_batchs, axis=0)
-
-        print(np_x_train.shape)
-        print(np_y_train.shape)
-
-        return tf.data.Dataset.from_tensor_slices((np_x_train, np_y_train))
-
-
-class FedEWCEstimatorLearner(FedEstimatorLearner):
-    def __init__(self, dataset, learning_spec, run_config):
-        super(FedEWCEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
-
-    def model_fn(self, features, labels, mode):
-        model_fn_creator = model_fn.QEWCModelFNCreator(features, labels, mode, self.learning_spec)
-
-        return model_fn_creator.create()
-
 
 
 class IMMEstimatorLearner(EstimatorLearner):

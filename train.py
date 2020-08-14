@@ -25,7 +25,8 @@ def main(argv):
     # optimizer parameters
     parser.add_argument('--n_epoch', type=int, default=1, help='Number of epochs per task')
     parser.add_argument('--n_batch', type=int, default=10, help='batch size')
-    parser.add_argument('--n_fed_batch', type=int, default=10, help='batch size for Fed learning')
+    parser.add_argument('--n_fed_step', type=int, default=500, help='step per each round for Fed learning')
+    parser.add_argument('--n_fed_round', type=int, default=1, help='iteration round for Fed learning')
     parser.add_argument('--lr', type=float, default=5e-2, help='SGD learning rate')
 
     # experiment parameters
@@ -43,11 +44,14 @@ def main(argv):
     n_batch = args.n_batch
     n_task = args.n_task
     n_block = args.n_block
-    n_fed_batch = args.n_fed_batch
+    n_fed_step = args.n_fed_step
+    n_fed_round = args.n_fed_round
     save_path = args.save_path
 
+    print("seed: ", seed)
     print("n_batch: ", n_batch)
-    print("fed_batch: ", n_fed_batch)
+    print("n_fed_step: ", n_fed_step)
+    print("n_fed_round: ", n_fed_round)
     print("learning_rate: ", learning_rate)
 
     model_dir = args.model + args.data
@@ -65,7 +69,7 @@ def main(argv):
     learning_rates = learning_rate * np.ones(n_task)
     learning_specs = []
 
-    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(n_fed_batch/n_batch))
+    run_config = tf.estimator.RunConfig(model_dir=model_dir, save_checkpoints_steps=int(n_train/n_batch))
 
     for i in range(n_task):
         opt = op.SGDOptimizer(learning_rates[i])

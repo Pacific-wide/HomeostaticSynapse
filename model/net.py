@@ -90,3 +90,6 @@ class MainCNN(BaseCNN):
         super(MainCNN, self).__init__("main", 1, 32, 10, 32, 3)
 
 
+class MobileNet(object):
+    def build(self):
+        return tf.keras.applications.MobileNetV3Small(input_shape=(32, 32, 3), classes=10, weights=None)
