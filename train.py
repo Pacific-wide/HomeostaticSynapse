@@ -75,7 +75,7 @@ def main(argv):
         opt = op.SGDOptimizer(learning_rates[i])
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_train, n_task,
-                                                model_dir, opt_spec, n_fed_batch, alpha))
+                                                model_dir, opt_spec, n_fed_step, alpha))
 
     ModelClass = getattr(importlib.import_module('model.grouplearner'), 'Group'+args.model+'Learner')
     my_grouplearner = ModelClass(set_of_datasets, learning_specs, n_task, run_config)
@@ -88,7 +88,7 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = save_path + "/" + model_dir + str(n_fed_batch) + "_" + str(seed) + ".txt"
+    filepath = save_path + "/" + model_dir + str(n_fed_step) + "_" + str(seed) + ".txt"
     logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, 0, n_block)
 
 

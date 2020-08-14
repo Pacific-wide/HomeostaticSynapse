@@ -116,8 +116,8 @@ class GroupFedSGDLearner(GroupLearner):
     def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
         super(GroupFedSGDLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
         self.n_fed_step = self.learning_specs[0].n_fed_step
-        self.n_round = self.learning_specs[0].n_fed_batch
-        self.n_fed_task = self.n_task * self.n_round
+        self.n_fed_round = self.learning_specs[0].n_fed_round
+        self.n_fed_task = int(self.n_task * self.n_fed_round)
 
     def base_train(self):
         base_dataset = self.set_of_dataset.fed_list[0]

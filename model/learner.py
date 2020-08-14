@@ -62,7 +62,7 @@ class SingleEstimatorLearner(EstimatorLearner):
         return model_fn_creator.create()
 
 
-class SGDEstimatorLearner(EstimatorLearner):
+class SGDEstimatorLearner(SingleEstimatorLearner):
     def __init__(self, dataset, learning_spec, run_config):
         super(SGDEstimatorLearner, self).__init__(dataset, learning_spec, run_config)
         self.n_fed_batch = self.learning_spec.n_batch * self.learning_spec.n_fed_step
