@@ -119,6 +119,10 @@ class GroupFedSGDLearner(GroupLearner):
         self.n_fed_round = self.learning_specs[0].n_fed_round
         self.n_fed_task = int(self.n_task * self.n_fed_round)
 
+        print("n_fed_step:",  self.n_fed_step)
+        print("n_fed_round:",  self.n_fed_round)
+        print("n_fed_task:",  self.n_fed_task)
+
     def base_train(self):
         base_dataset = self.set_of_dataset.fed_list[0]
         base_learner = learner.BaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config)
@@ -130,8 +134,7 @@ class GroupFedSGDLearner(GroupLearner):
             Fed_learner = learner.SGDEstimatorLearner(self.set_of_dataset.list[i_task], self.learning_specs[0], self.run_config)
             Fed_learner.train()
 
-        for i in range(self.n_task):
-            self.evaluate(i)
+        self.evaluate(self.n_task-1)
 
         return self.eval_matrix
 
