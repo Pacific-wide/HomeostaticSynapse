@@ -129,13 +129,25 @@ class SetOfRandMNISTBPERM(SetOfMNIST):
             self.list.append(ds.RandMNISTBPERM(self.n_grid))
 
 
+# class SetOfRandMNISTROTA(SetOfMNIST):
+#     def __init__(self, n_task):
+#         super(SetOfRandMNISTROTA, self).__init__(n_task)
+#
+#     def generate(self):
+#         for i in range(self.n_task):
+#             self.list.append(ds.RandMNISTROTA())
+
+
 class SetOfRandMNISTROTA(SetOfMNIST):
     def __init__(self, n_task):
         super(SetOfRandMNISTROTA, self).__init__(n_task)
 
     def generate(self):
+        angle_list = [0, 45, 90]
         for i in range(self.n_task):
-            self.list.append(ds.RandMNISTROTA())
+            cur_angle = angle_list[i]
+            print(cur_angle)
+            self.list.append(ds.MNISTROTA(cur_angle))
 
 
 class SetOfGradualMNISTROTA(SetOfMNIST):

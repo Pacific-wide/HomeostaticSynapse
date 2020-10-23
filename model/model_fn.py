@@ -51,7 +51,8 @@ class ModelFNCreator(object):
     def compute_curvature(self, grads_and_vars):
         gradient_hook = []
         for grad_and_var in grads_and_vars:
-            gradient_hook.append(hook.SquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch, self.learning_spec.n_fed_batch))
+            n_total = self.learning_spec.n_batch * self.learning_spec.n_fed_step
+            gradient_hook.append(hook.SquareAccumulationGradientHook(grad_and_var, self.learning_spec.n_batch, n_total))
 
         return gradient_hook
 

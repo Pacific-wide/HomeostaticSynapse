@@ -124,7 +124,7 @@ class GroupFedSGDLearner(GroupLearner):
         print("n_fed_task:",  self.n_fed_task)
 
     def base_train(self):
-        base_dataset = self.set_of_dataset.fed_list[0]
+        base_dataset = self.set_of_dataset.list[0]
         base_learner = learner.BaseEstimatorLearner(base_dataset, self.learning_specs[0], self.run_config)
         base_learner.train()
 
@@ -147,12 +147,12 @@ class GroupFedOEWCLearner(GroupFedSGDLearner):
         self.base_train()
 
         for i in range(1, self.n_fed_task):
-            dataset = self.set_of_dataset.fed_list[i]
+            i_task = i % 3
+            dataset = self.set_of_dataset.list[i_task]
             single_learner = learner.OEWCEstimatorLearner(dataset, self.learning_specs[0], self.run_config)
             single_learner.train()
 
-        for i in range(self.n_task):
-            self.evaluate(i)
+        self.evaluate(self.n_task - 1)
 
         return self.eval_matrix
 
@@ -165,12 +165,12 @@ class GroupFedQEWCLearner(GroupFedSGDLearner):
         self.base_train()
 
         for i in range(1, self.n_fed_task):
-            dataset = self.set_of_dataset.fed_list[i]
+            i_task = i % 3
+            dataset = self.set_of_dataset.list[i_task]
             single_learner = learner.QEWCEstimatorLearner(dataset, self.learning_specs[0], self.run_config)
             single_learner.train()
 
-        for i in range(self.n_task):
-            self.evaluate(i)
+        self.evaluate(self.n_task - 1)
 
         return self.eval_matrix
 
