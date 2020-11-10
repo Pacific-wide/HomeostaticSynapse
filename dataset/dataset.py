@@ -51,27 +51,6 @@ class MNIST(DataSet):
         self.x_test = self.x_test.reshape(self.x_test.shape[0], self.row, self.row, 1)  # (10000, 28, 28 ,1)
 
 
-class SwapMnist(MNIST):
-    def __init__(self, perm):
-        super(SwapMnist, self).__init__()
-        self.perm = perm
-        self.in_perm = self.perm
-        self.out_perm = np.flip(self.perm)
-
-        self.flatten()
-        self.swap_pixel()
-
-    def swap_pixel(self):
-        for (i, o) in zip(self.in_perm, self.out_perm):
-            temp_pixel = self.x_train[:, i]
-            self.x_train[:, i] = self.x_train[:, o]
-            self.x_train[:, o] = temp_pixel
-
-            temp_pixel = self.x_test[:, i]
-            self.x_test[:, i] = self.x_test[:, o]
-            self.x_test[:, o] = temp_pixel
-
-
 class MNISTPERM(MNIST):
     def __init__(self, perm):
         super(MNISTPERM, self).__init__()
@@ -133,30 +112,6 @@ class RandColMNISTPERM(ColMNISTPERM):
         row = 28
         perm = np.random.permutation(row)
         super(RandColMNISTPERM, self).__init__(perm)
-
-
-class WholeMNISTPERM(MNISTPERM):
-    def __init__(self, row_perm, col_perm):
-        super(WholeMNISTPERM, self).__init__(0)
-        self.row_perm = row_perm
-        self.col_perm = col_perm
-
-    def permute(self):
-        self.x_train = self.x_train[:, self.row_perm, :]
-        self.x_test = self.x_test[:, self.row_perm, :]
-
-        self.x_train = self.x_train[:, :, self.col_perm]
-        self.x_test = self.x_test[:, :, self.col_perm]
-
-        self.flatten()
-
-
-class RandWholeMNISTPERM(WholeMNISTPERM):
-    def __init__(self):
-        row = 28
-        self.row_perm = np.random.permutation(row)
-        self.col_perm = np.random.permutation(row)
-        super(RandWholeMNISTPERM, self).__init__(self.row_perm, self.col_perm)
 
 
 class MNISTBPERM(MNISTPERM):

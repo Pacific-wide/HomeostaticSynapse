@@ -42,47 +42,6 @@ class SetOfMNIST(SetOfDataSet):
                 self.fed_list.append(fed_dataset)
 
 
-class SetOfSwapBlock(SetOfDataSet):
-    def __init__(self, n_task, n_grid, step):
-        self.n_grid = n_grid
-        self.step = step
-        self.grid_blocks = self.n_grid * self.n_grid
-        # self.grid_perm = np.arange(self.grid_blocks)
-        self.grid_perm = np.random.permutation(self.grid_blocks)
-        self.pixel_perm = np.random.permutation(self.grid_blocks)
-
-        super(SetOfSwapBlock, self).__init__(n_task)
-
-    def generate(self):
-        for index in range(self.n_task):
-            self.list.append(ds.MNISTBPERM(self.grid_perm, self.n_grid))
-            for j in range(self.step):
-                self.swap_perm(index*(j+1))
-
-    def swap_perm(self, index):
-        input_index = index % self.grid_blocks
-        i = self.pixel_perm[input_index]
-        out_index = (3*index+1) % self.grid_blocks
-        o = self.pixel_perm[out_index]
-        self.grid_perm[i] = o
-        self.grid_perm[o] = i
-
-
-class SetOfMNISTPlusMNISTBPERM(SetOfMNIST):
-    def __init__(self, n_task, n_grid):
-        self.n_grid = n_grid
-        super(SetOfMNISTPlusMNISTBPERM, self).__init__(n_task)
-
-    def generate(self):
-        first_dataset = ds.MNIST()
-        first_dataset.reshape3D()
-        self.list.append(first_dataset)
-        for i in range(1, self.n_task):
-            temp_dataset = ds.RandMNISTBPERM(self.n_grid)
-            temp_dataset.reshape3D()
-            self.list.append(temp_dataset)
-
-
 class SetOfRandMNISTPERM(SetOfMNIST):
     def __init__(self, n_task):
         super(SetOfRandMNISTPERM, self).__init__(n_task)
@@ -110,15 +69,6 @@ class SetOfRandColMNISTPERM(SetOfMNIST):
             self.list.append(ds.RandColMNISTPERM())
 
 
-class SetOfRandWholeMNISTPERM(SetOfMNIST):
-    def __init__(self, n_task):
-        super(SetOfRandWholeMNISTPERM, self).__init__(n_task)
-
-    def generate(self):
-        for i in range(self.n_task):
-            self.list.append(ds.RandWholeMNISTPERM())
-
-
 class SetOfRandMNISTBPERM(SetOfMNIST):
     def __init__(self, n_task, n_grid):
         self.n_grid = n_grid
@@ -129,36 +79,13 @@ class SetOfRandMNISTBPERM(SetOfMNIST):
             self.list.append(ds.RandMNISTBPERM(self.n_grid))
 
 
-# class SetOfRandMNISTROTA(SetOfMNIST):
-#     def __init__(self, n_task):
-#         super(SetOfRandMNISTROTA, self).__init__(n_task)
-#
-#     def generate(self):
-#         for i in range(self.n_task):
-#             self.list.append(ds.RandMNISTROTA())
-
-
 class SetOfRandMNISTROTA(SetOfMNIST):
     def __init__(self, n_task):
         super(SetOfRandMNISTROTA, self).__init__(n_task)
 
     def generate(self):
-        angle_list = [0, 45, 90]
         for i in range(self.n_task):
-            cur_angle = angle_list[i]
-            print(cur_angle)
-            self.list.append(ds.MNISTROTA(cur_angle))
-
-
-class SetOfGradualMNISTROTA(SetOfMNIST):
-    def __init__(self, n_task, range):
-        self.range = range
-        super(SetOfGradualMNISTROTA, self).__init__(n_task)
-
-    def generate(self):
-        for i in range(self.n_task):
-            angle = int((i + 1) * 360 * self.range / self.n_task)
-            self.list.append(ds.MNISTROTA(angle))
+            self.list.append(ds.RandMNISTROTA())
 
 
 class SetOfGradualMNISTSPLIT(SetOfMNIST):
