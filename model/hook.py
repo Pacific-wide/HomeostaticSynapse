@@ -39,35 +39,6 @@ class SquareAccumulationGradientHook(GradientHook):
                                         'condition': self.assign_condition})
 
 
-class CenterSquareAccumulationGradientHook(SquareAccumulationGradientHook):
-    def __init__(self, grad_and_var, n_batch, n_train):
-        super(CenterSquareAccumulationGradientHook, self).__init__(grad_and_var, n_batch, n_train)
-
-    def begin(self):
-        self.sum_gradients = tf.Variable(tf.zeros_like(self.gradients), name=('fisher/' + self.name))
-        self.assign_condition = tf.greater_equal(self.global_step % self.period, 0)
-        self.assign_gradients = tf.where(self.assign_condition, tf.math.square(self.gradients),
-                                         tf.zeros_like(self.gradients))
-
-        self.sum_gradients = tf.assign_add(self.sum_gradients, self.assign_gradients)
-
-        self.sum_thetas = tf.Variable(tf.zeros_like(self.variable), name=('center/' + self.name))
-        self.assign_thetas = tf.where(self.assign_condition, self.variable, tf.zeros_like(self.variable))
-        self.sum_thetas = tf.assign_add(self.sum_thetas, self.assign_thetas)
-
-    def save_fisher_component(self, results):
-        if (results['global_step']+self.n_batch) % self.period == 0:
-            print(self.name, ': fisher', np.linalg.norm(results['sum_gradients']))
-            print(self.name, ': center', np.linalg.norm(results['sum_thetas']))
-            print('step condtion: ', results['condition'])
-
-    def before_run(self, run_context):
-        return tf.estimator.SessionRunArgs({'sum_gradients': self.sum_gradients,
-                                        'sum_thetas': self.sum_thetas,
-                                        'global_step': self.global_step,
-                                        'condition': self.assign_condition})
-
-
 class SequentialSquareAccumulationGradientHook(SquareAccumulationGradientHook):
     def __init__(self, grad_and_var, n_batch, n_train, n_task, i_task):
         super(SequentialSquareAccumulationGradientHook, self).__init__(grad_and_var, n_batch, n_train)

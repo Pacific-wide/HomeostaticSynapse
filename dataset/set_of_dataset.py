@@ -96,7 +96,6 @@ class SetOfGradualMNISTSPLIT(SetOfMNIST):
     def generate(self):
         for i in range(self.n_task):
             label_list = range(10)[self.period*i:self.period*(i+1)]
-            print(label_list)
             self.list.append(ds.MNISTSPLIT(label_list))
 
 

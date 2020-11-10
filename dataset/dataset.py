@@ -221,6 +221,7 @@ class MNISTSPLIT(MNIST):
             index_list.extend(indexes)
             index_list.sort()
 
+        print("-" * 100)
         return index_list
 
 

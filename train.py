@@ -33,7 +33,7 @@ def main(argv):
     parser.add_argument('--n_task', type=int, default=10, help='Number of tasks')
     parser.add_argument('--n_block', type=int, default=7, help='Number of blocks in BPERM')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
-    parser.add_argument('--save_path', type=str, default='new_result', help='save models')
+    parser.add_argument('--save_path', type=str, default='result', help='save models')
 
     args = parser.parse_args()
 
@@ -88,7 +88,7 @@ def main(argv):
     tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
 
     metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = save_path + "/" + model_dir + str(n_fed_step) + "_" + str(n_fed_round) + "_" + str(seed) + ".txt"
+    filepath = model_dir + ".txt"
     logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, 0, n_block)
 
 
