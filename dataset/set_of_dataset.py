@@ -70,7 +70,7 @@ class SetOfRandColMNISTPERM(SetOfMNIST):
 
 
 class SetOfRandMNISTBPERM(SetOfMNIST):
-    def __init__(self, n_task, n_grid):
+    def __init__(self, n_task, n_grid=7):
         self.n_grid = n_grid
         super(SetOfRandMNISTBPERM, self).__init__(n_task)
 
@@ -122,7 +122,7 @@ class SetOfCIFAR10(SetOfDataSet):
 
 
 class SetOfCIFAR10PlusCIFAR10BPERM(SetOfCIFAR10):
-    def __init__(self, n_task, n_grid):
+    def __init__(self, n_task, n_grid=7):
         self.n_grid = n_grid
         super(SetOfCIFAR10PlusCIFAR10BPERM, self).__init__(n_task)
 

@@ -31,7 +31,6 @@ def main(argv):
 
     # experiment parameters
     parser.add_argument('--n_task', type=int, default=10, help='Number of tasks')
-    parser.add_argument('--n_block', type=int, default=7, help='Number of blocks in BPERM')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument('--save_path', type=str, default='result', help='save models')
 
@@ -58,10 +57,7 @@ def main(argv):
     np.random.seed(seed)
     DataClass = getattr(importlib.import_module('dataset.set_of_dataset'), 'SetOf' + args.data)
 
-    if args.data[-5:] == 'BPERM':
-        set_of_datasets = DataClass(n_task, n_block)        # For Block-wise Permutation
-    else:
-        set_of_datasets = DataClass(n_task)
+    set_of_datasets = DataClass(n_task)
 
     n_train = set_of_datasets.list[0].n_train
     d_in = set_of_datasets.list[0].d_in
