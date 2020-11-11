@@ -68,11 +68,14 @@ class SGDEstimatorLearner(SingleEstimatorLearner):
         self.n_fed_batch = self.learning_spec.n_batch * self.learning_spec.n_fed_step
         self.n_train = self.learning_spec.n_train
 
+        print(self.n_fed_batch)
+
     def train_input_fn(self):
-        shuffle_map = np.random.choice(self.n_fed_batch, self.n_train, replace=True)
+        shuffle_map = np.random.choice(self.n_train, self.n_fed_batch, replace=True)
         tf_train = tf.data.Dataset.from_tensor_slices((self.dataset.x_train[shuffle_map], self.dataset.y_train[shuffle_map]))
         tf_train = tf_train.shuffle(self.learning_spec.n_train, reshuffle_each_iteration=True).repeat(self.learning_spec.n_epoch).batch(self.learning_spec.n_batch)
 
+        print(tf_train)
         return tf_train
 
 

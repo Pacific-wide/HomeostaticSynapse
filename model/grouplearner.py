@@ -130,13 +130,38 @@ class GroupFedSGDLearner(GroupLearner):
 
     def train_and_evaluate(self):
         for i in range(self.n_fed_task):
-            i_task = i % 3
+            i_task = i % self.n_task
             Fed_learner = learner.SGDEstimatorLearner(self.set_of_dataset.list[i_task], self.learning_specs[0], self.run_config)
             Fed_learner.train()
 
         self.evaluate(self.n_task-1)
 
         return self.eval_matrix
+
+
+class GroupFedAvgLearner(GroupFedSGDLearner):
+    def __init__(self, set_of_dataset, learning_specs, n_task, run_config):
+        super(GroupFedAvgLearner, self).__init__(set_of_dataset, learning_specs, n_task, run_config)
+        self.fed_eval_accuracy = np.zeros(self.n_fed_task)
+
+    def train_and_evaluate(self):
+        dataset = self.set_of_dataset.list[0]
+        learning_specs = self.learning_specs[0]
+
+        for i in range(self.n_fed_task):
+            single_learner = learner.SGDEstimatorLearner(dataset, learning_specs, self.run_config)
+            single_learner.train()
+
+            self.evaluate(i)
+
+        return self.fed_eval_accuracy
+
+    def evaluate(self, i):
+        self.learning_specs[0].n_batch = 10
+        eval_learner = learner.SingleEstimatorLearner(self.set_of_dataset.list[0], self.learning_specs[0],
+                                                      self.run_config)
+        result = eval_learner.evaluate()
+        self.fed_eval_accuracy[i] = result['accuracy']
 
 
 class GroupFedOEWCLearner(GroupFedSGDLearner):

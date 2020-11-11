@@ -4,12 +4,10 @@ import argparse
 import importlib
 import sys
 import logging
+import result.logger as log
 
 from optimizer import optimizer as op
 from optimizer import spec
-from optimizer import metric
-
-from result import logger
 
 
 def main(argv):
@@ -42,16 +40,11 @@ def main(argv):
     n_epoch = args.n_epoch
     n_batch = args.n_batch
     n_task = args.n_task
-    n_block = args.n_block
     n_fed_step = args.n_fed_step
     n_fed_round = args.n_fed_round
     save_path = args.save_path
 
-    print("seed: ", seed)
-    print("n_batch: ", n_batch)
-    print("n_fed_step: ", n_fed_step)
-    print("n_fed_round: ", n_fed_round)
-    print("learning_rate: ", learning_rate)
+    print(args)
 
     model_dir = args.model + args.data
     np.random.seed(seed)
@@ -71,21 +64,16 @@ def main(argv):
         opt = op.SGDOptimizer(learning_rates[i])
         opt_spec = spec.OptimizerSpec(opt, d_in)
         learning_specs.append(spec.LearningSpec(n_epoch, n_batch, n_train, n_task,
-                                                model_dir, opt_spec, n_fed_step, alpha))
+                                                model_dir, opt_spec, n_fed_step, n_fed_round, alpha))
 
     ModelClass = getattr(importlib.import_module('model.grouplearner'), 'Group'+args.model+'Learner')
     my_grouplearner = ModelClass(set_of_datasets, learning_specs, n_task, run_config)
 
-    accuracy_matrix = my_grouplearner.train_and_evaluate()
-
-    avg_acc = metric.AverageAccuracy(accuracy_matrix).compute()
-    tot_acc = metric.TotalAccuracy(accuracy_matrix).compute()
-    avg_forget = metric.AverageForgetting(accuracy_matrix).compute()
-    tot_forget = metric.TotalForgetting(accuracy_matrix).compute()
-
-    metric_list = [avg_acc, tot_acc, avg_forget, tot_forget]
-    filepath = model_dir + ".txt"
-    logger.save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs, 0, n_block)
+    accuracy_vector = my_grouplearner.train_and_evaluate()
+    print(accuracy_vector)
+    filepath = args.model + ".txt"
+    f = open(filepath, 'a')
+    log.save_vector(accuracy_vector, len(accuracy_vector), f)
 
 
 if __name__ == '__main__':

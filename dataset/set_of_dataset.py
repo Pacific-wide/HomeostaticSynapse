@@ -42,6 +42,17 @@ class SetOfMNIST(SetOfDataSet):
                 self.fed_list.append(fed_dataset)
 
 
+class SetOfMNISTIID(SetOfMNIST):
+    def __init__(self, n_task):
+        super(SetOfMNISTIID, self).__init__(n_task)
+
+    def generate(self):
+        for i in range(self.n_task):
+            new_task = ds.MNIST()
+            new_task.flatten()
+            self.list.append(new_task)
+
+
 class SetOfRandMNISTPERM(SetOfMNIST):
     def __init__(self, n_task):
         super(SetOfRandMNISTPERM, self).__init__(n_task)

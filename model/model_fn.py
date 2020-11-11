@@ -11,9 +11,6 @@ class ModelFNCreator(object):
         self.learning_spec = learning_spec
         self.optimizer_spec = self.learning_spec.optimizer_spec
         self.model = net.Main(self.optimizer_spec.d_in).build()
-        # self.model = net.MainCNN().build()
-        # self.model = net.MobileNet().build()
-        self.model.summary()
         self.features = features
         self.logits = self.model(features)
         self.predictions = tf.argmax(self.logits, axis=1)
