@@ -15,7 +15,7 @@ def save(filepath, model_dir, accuracy_matrix, metric_list, seed, learning_specs
 
 def save_vector(accuracy_vector, y, f):
     for j in range(y):
-        f.write(str(round(accuracy_vector[j], 4)) + " ")
+        f.write(str(np.around(accuracy_vector[j], 4)) + " ")
     f.write(str("\n"))
 
 
@@ -27,6 +27,6 @@ def save_matrix(accuracy_matrix, x, y, f):
 
 def save_metrics(metric_list, f):
     for item in metric_list:
-        f.write(str(np.round(item, 4)) + "\n")
+        f.write(str(np.around(item, 4)) + "\n")
 
 
