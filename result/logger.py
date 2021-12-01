@@ -27,6 +27,6 @@ def save_matrix(accuracy_matrix, x, y, f):
 
 def save_metrics(metric_list, f):
     for item in metric_list:
-        f.write(str(round(item, 4)) + "\n")
+        f.write(str(np.round(item, 4)) + "\n")
 
 
